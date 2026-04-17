@@ -163,7 +163,3 @@ function Overview() {
   );
 }
 
-// Re-export to keep existing template references happy
-export { Overview as Index };
-const _line = LineChart; void _line; // ensure recharts tree-shake doesn't drop type
-const _line2 = Line; void _line2;
