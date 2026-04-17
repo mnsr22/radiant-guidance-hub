@@ -1,7 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, MessageSquare, Shield, Activity, Heart,
-  Settings, Moon, Bell, CreditCard, FileText, Sparkles, ChevronLeft,
+  Settings, Moon, Bell, CreditCard, FileText, Sparkles, ChevronLeft, Send,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ const nav = [
   { to: "/", label: "Overview", icon: LayoutDashboard },
   { to: "/users", label: "Users", icon: Users },
   { to: "/chats", label: "Chat Monitoring", icon: MessageSquare },
+  { to: "/messaging", label: "Messaging", icon: Send },
   { to: "/moderation", label: "Moderation", icon: Shield },
   { to: "/live", label: "Live Activity", icon: Activity },
   { to: "/matches", label: "Matches", icon: Heart },
