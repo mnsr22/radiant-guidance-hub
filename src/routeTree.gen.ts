@@ -14,6 +14,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MonetizationRouteImport } from './routes/monetization'
 import { Route as ModerationRouteImport } from './routes/moderation'
+import { Route as MessagingRouteImport } from './routes/messaging'
 import { Route as MatchesRouteImport } from './routes/matches'
 import { Route as LogsRouteImport } from './routes/logs'
 import { Route as LiveRouteImport } from './routes/live'
@@ -44,6 +45,11 @@ const MonetizationRoute = MonetizationRouteImport.update({
 const ModerationRoute = ModerationRouteImport.update({
   id: '/moderation',
   path: '/moderation',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MessagingRoute = MessagingRouteImport.update({
+  id: '/messaging',
+  path: '/messaging',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MatchesRoute = MatchesRouteImport.update({
@@ -84,6 +90,7 @@ export interface FileRoutesByFullPath {
   '/live': typeof LiveRoute
   '/logs': typeof LogsRoute
   '/matches': typeof MatchesRoute
+  '/messaging': typeof MessagingRoute
   '/moderation': typeof ModerationRoute
   '/monetization': typeof MonetizationRoute
   '/notifications': typeof NotificationsRoute
@@ -97,6 +104,7 @@ export interface FileRoutesByTo {
   '/live': typeof LiveRoute
   '/logs': typeof LogsRoute
   '/matches': typeof MatchesRoute
+  '/messaging': typeof MessagingRoute
   '/moderation': typeof ModerationRoute
   '/monetization': typeof MonetizationRoute
   '/notifications': typeof NotificationsRoute
@@ -111,6 +119,7 @@ export interface FileRoutesById {
   '/live': typeof LiveRoute
   '/logs': typeof LogsRoute
   '/matches': typeof MatchesRoute
+  '/messaging': typeof MessagingRoute
   '/moderation': typeof ModerationRoute
   '/monetization': typeof MonetizationRoute
   '/notifications': typeof NotificationsRoute
@@ -126,6 +135,7 @@ export interface FileRouteTypes {
     | '/live'
     | '/logs'
     | '/matches'
+    | '/messaging'
     | '/moderation'
     | '/monetization'
     | '/notifications'
@@ -139,6 +149,7 @@ export interface FileRouteTypes {
     | '/live'
     | '/logs'
     | '/matches'
+    | '/messaging'
     | '/moderation'
     | '/monetization'
     | '/notifications'
@@ -152,6 +163,7 @@ export interface FileRouteTypes {
     | '/live'
     | '/logs'
     | '/matches'
+    | '/messaging'
     | '/moderation'
     | '/monetization'
     | '/notifications'
@@ -166,6 +178,7 @@ export interface RootRouteChildren {
   LiveRoute: typeof LiveRoute
   LogsRoute: typeof LogsRoute
   MatchesRoute: typeof MatchesRoute
+  MessagingRoute: typeof MessagingRoute
   ModerationRoute: typeof ModerationRoute
   MonetizationRoute: typeof MonetizationRoute
   NotificationsRoute: typeof NotificationsRoute
@@ -208,6 +221,13 @@ declare module '@tanstack/react-router' {
       path: '/moderation'
       fullPath: '/moderation'
       preLoaderRoute: typeof ModerationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/messaging': {
+      id: '/messaging'
+      path: '/messaging'
+      fullPath: '/messaging'
+      preLoaderRoute: typeof MessagingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/matches': {
@@ -262,6 +282,7 @@ const rootRouteChildren: RootRouteChildren = {
   LiveRoute: LiveRoute,
   LogsRoute: LogsRoute,
   MatchesRoute: MatchesRoute,
+  MessagingRoute: MessagingRoute,
   ModerationRoute: ModerationRoute,
   MonetizationRoute: MonetizationRoute,
   NotificationsRoute: NotificationsRoute,
@@ -271,3 +292,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
