@@ -1,5 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Users, UserPlus, Heart, MessageSquare, TrendingUp, Activity } from "lucide-react";
+import { toast } from "sonner";
+import { downloadCSV } from "@/lib/csv";
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend,
   Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
@@ -16,6 +18,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Overview() {
+  const navigate = useNavigate();
   return (
     <AdminLayout>
       <PageHeader
@@ -23,8 +26,21 @@ function Overview() {
         description="Real-time insights into your halal matrimony platform."
         actions={
           <>
-            <Button variant="outline" size="sm">Export CSV</Button>
-            <Button size="sm" className="bg-gradient-primary text-primary-foreground border-0 shadow-elegant">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                downloadCSV("noor-overview", userGrowth);
+                toast.success("Overview exported to CSV");
+              }}
+            >
+              Export CSV
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => toast.success("Report generation queued — you'll be notified when ready")}
+              className="bg-gradient-primary text-primary-foreground border-0 shadow-elegant"
+            >
               <TrendingUp className="h-4 w-4 mr-2" /> Generate Report
             </Button>
           </>
@@ -141,7 +157,7 @@ function Overview() {
             </h3>
             <p className="text-xs text-muted-foreground">Latest moderation queue</p>
           </div>
-          <Button variant="ghost" size="sm">View all</Button>
+          <Button variant="ghost" size="sm" onClick={() => navigate({ to: "/moderation" })}>View all</Button>
         </div>
         <div className="divide-y -mx-2">
           {mockReports.slice(0, 5).map((r) => (
