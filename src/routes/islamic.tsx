@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Moon, Star, BookOpen, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 import { AdminLayout, PageHeader } from "@/components/admin/layout";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -7,7 +9,47 @@ import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/islamic")({ component: IslamicPage });
 
+const reminderItems = [
+  "Morning Qur'an verse",
+  "Evening Hadith",
+  "Friday Surah Al-Kahf reminder",
+  "Ramadan special reminders",
+];
+
+const prayerItems = [
+  { label: "Show prayer times in profile", on: true },
+  { label: "Pause notifications during Salah", on: true },
+  { label: "Match boost after Fajr", on: false },
+  { label: "Tasbih streak badges", on: true },
+];
+
+const filterItems = [
+  "Prayer level visibility",
+  "Madhab filter",
+  "Hijab preference filter (sisters)",
+  "Beard preference filter (brothers)",
+  "Modesty image review (AI)",
+  "Wali approval required for matches",
+  "Restrict private photos",
+  "No first-name display until match",
+];
+
+function useToggleMap(initial: Record<string, boolean>) {
+  const [state, setState] = useState(initial);
+  return {
+    state,
+    toggle: (key: string, on: boolean) => {
+      setState((s) => ({ ...s, [key]: on }));
+      toast.success(`${key} ${on ? "enabled" : "disabled"}`);
+    },
+  };
+}
+
 function IslamicPage() {
+  const reminders = useToggleMap(Object.fromEntries(reminderItems.map((r) => [r, true])));
+  const prayer = useToggleMap(Object.fromEntries(prayerItems.map((p) => [p.label, p.on])));
+  const filters = useToggleMap(Object.fromEntries(filterItems.map((f) => [f, true])));
+
   return (
     <AdminLayout>
       <PageHeader title="Islamic Feature Controls" description="Manage faith-based features and modesty filters." />
@@ -24,10 +66,10 @@ function IslamicPage() {
             </div>
           </div>
           <div className="space-y-3">
-            {["Morning Qur'an verse", "Evening Hadith", "Friday Surah Al-Kahf reminder", "Ramadan special reminders"].map((r) => (
+            {reminderItems.map((r) => (
               <div key={r} className="flex items-center justify-between p-3 rounded-lg border">
                 <Label className="text-sm">{r}</Label>
-                <Switch defaultChecked />
+                <Switch checked={reminders.state[r]} onCheckedChange={(v) => reminders.toggle(r, v)} />
               </div>
             ))}
           </div>
@@ -44,10 +86,10 @@ function IslamicPage() {
             </div>
           </div>
           <div className="space-y-3">
-            {["Show prayer times in profile", "Pause notifications during Salah", "Match boost after Fajr", "Tasbih streak badges"].map((r) => (
-              <div key={r} className="flex items-center justify-between p-3 rounded-lg border">
-                <Label className="text-sm">{r}</Label>
-                <Switch defaultChecked={r !== "Match boost after Fajr"} />
+            {prayerItems.map((p) => (
+              <div key={p.label} className="flex items-center justify-between p-3 rounded-lg border">
+                <Label className="text-sm">{p.label}</Label>
+                <Switch checked={prayer.state[p.label]} onCheckedChange={(v) => prayer.toggle(p.label, v)} />
               </div>
             ))}
           </div>
@@ -64,22 +106,13 @@ function IslamicPage() {
             </div>
           </div>
           <div className="grid sm:grid-cols-2 gap-3">
-            {[
-              "Prayer level visibility",
-              "Madhab filter",
-              "Hijab preference filter (sisters)",
-              "Beard preference filter (brothers)",
-              "Modesty image review (AI)",
-              "Wali approval required for matches",
-              "Restrict private photos",
-              "No first-name display until match",
-            ].map((r) => (
+            {filterItems.map((r) => (
               <div key={r} className="flex items-center justify-between p-3 rounded-lg border">
                 <Label className="text-sm flex items-center gap-2">
                   <Star className="h-3.5 w-3.5 text-primary" />
                   {r}
                 </Label>
-                <Switch defaultChecked />
+                <Switch checked={filters.state[r]} onCheckedChange={(v) => filters.toggle(r, v)} />
               </div>
             ))}
           </div>
