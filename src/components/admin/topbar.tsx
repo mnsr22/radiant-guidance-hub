@@ -1,4 +1,4 @@
-import { Bell, Search, Sun, MoonStar, Circle, LogOut, User } from "lucide-react";
+import { Bell, Search, Sun, MoonStar, Circle, LogOut, User, Menu } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -11,13 +11,22 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useTheme } from "@/components/theme-provider";
 
-export function AdminTopbar() {
+export function AdminTopbar({ onOpenMobile }: { onOpenMobile?: () => void }) {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b bg-background/80 backdrop-blur-xl px-4 lg:px-6">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="lg:hidden -ml-2"
+        aria-label="Open menu"
+        onClick={onOpenMobile}
+      >
+        <Menu className="h-5 w-5" />
+      </Button>
       <form
-        className="relative flex-1 max-w-md"
+        className="relative flex-1 max-w-md hidden sm:block"
         onSubmit={(e) => {
           e.preventDefault();
           const value = (new FormData(e.currentTarget).get("q") as string)?.trim();
@@ -35,7 +44,7 @@ export function AdminTopbar() {
       </form>
 
       <div className="ml-auto flex items-center gap-2">
-        <div className="hidden md:flex items-center gap-2 rounded-full border bg-muted/30 px-3 py-1.5">
+        <div className="hidden lg:flex items-center gap-2 rounded-full border bg-muted/30 px-3 py-1.5">
           <span className="relative flex h-2 w-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
             <Circle className="h-2 w-2 fill-success text-success" />
@@ -66,7 +75,7 @@ export function AdminTopbar() {
               <Avatar className="h-8 w-8 ring-2 ring-primary/20">
                 <AvatarFallback className="bg-gradient-primary text-primary-foreground text-xs font-semibold">SA</AvatarFallback>
               </Avatar>
-              <div className="hidden sm:block leading-tight text-left">
+              <div className="hidden md:block leading-tight text-left">
                 <div className="text-xs font-semibold">Sarah Admin</div>
                 <div className="text-[10px] text-muted-foreground">Super Admin</div>
               </div>
