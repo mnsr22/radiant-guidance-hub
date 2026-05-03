@@ -6,7 +6,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-const nav = [
+export const adminNav = [
   { to: "/", label: "Overview", icon: LayoutDashboard },
   { to: "/users", label: "Users", icon: Users },
   { to: "/chats", label: "Chat Monitoring", icon: MessageSquare },
@@ -21,6 +21,61 @@ const nav = [
   { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
 
+export function SidebarNav({
+  collapsed = false,
+  onNavigate,
+}: {
+  collapsed?: boolean;
+  onNavigate?: () => void;
+}) {
+  const location = useLocation();
+  return (
+    <ul className="space-y-1">
+      {adminNav.map((item) => {
+        const active =
+          item.to === "/"
+            ? location.pathname === "/"
+            : location.pathname.startsWith(item.to);
+        const Icon = item.icon;
+        return (
+          <li key={item.to}>
+            <Link
+              to={item.to}
+              onClick={onNavigate}
+              className={cn(
+                "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
+                active
+                  ? "bg-gradient-primary text-primary-foreground shadow-elegant"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+              )}
+              title={collapsed ? item.label : undefined}
+            >
+              <Icon className="h-[18px] w-[18px] shrink-0" />
+              {!collapsed && <span className="truncate">{item.label}</span>}
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+export function SidebarBrand({ collapsed = false }: { collapsed?: boolean }) {
+  return (
+    <Link to="/" className="flex items-center gap-2 overflow-hidden">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-primary shadow-glow">
+        <Sparkles className="h-5 w-5 text-primary-foreground" />
+      </div>
+      {!collapsed && (
+        <div className="leading-tight">
+          <div className="text-sm font-semibold">Noor Admin</div>
+          <div className="text-[11px] text-muted-foreground">Halal Match · v1.0</div>
+        </div>
+      )}
+    </Link>
+  );
+}
+
 export function AdminSidebar({
   collapsed,
   onToggle,
@@ -28,8 +83,6 @@ export function AdminSidebar({
   collapsed: boolean;
   onToggle: () => void;
 }) {
-  const location = useLocation();
-
   return (
     <aside
       className={cn(
@@ -38,46 +91,11 @@ export function AdminSidebar({
       )}
     >
       <div className="flex h-16 items-center justify-between px-4 border-b">
-        <Link to="/" className="flex items-center gap-2 overflow-hidden">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-primary shadow-glow">
-            <Sparkles className="h-5 w-5 text-primary-foreground" />
-          </div>
-          {!collapsed && (
-            <div className="leading-tight">
-              <div className="text-sm font-semibold">Noor Admin</div>
-              <div className="text-[11px] text-muted-foreground">Halal Match · v1.0</div>
-            </div>
-          )}
-        </Link>
+        <SidebarBrand collapsed={collapsed} />
       </div>
 
       <nav className="flex-1 overflow-y-auto px-2 py-4">
-        <ul className="space-y-1">
-          {nav.map((item) => {
-            const active =
-              item.to === "/"
-                ? location.pathname === "/"
-                : location.pathname.startsWith(item.to);
-            const Icon = item.icon;
-            return (
-              <li key={item.to}>
-                <Link
-                  to={item.to}
-                  className={cn(
-                    "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
-                    active
-                      ? "bg-gradient-primary text-primary-foreground shadow-elegant"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                  )}
-                  title={collapsed ? item.label : undefined}
-                >
-                  <Icon className="h-[18px] w-[18px] shrink-0" />
-                  {!collapsed && <span className="truncate">{item.label}</span>}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        <SidebarNav collapsed={collapsed} />
       </nav>
 
       <div className="border-t p-3">
