@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Heart, TrendingUp, UserMinus, Sparkles } from "lucide-react";
+import { Heart, TrendingUp, UserMinus, Sparkles, MessageCircle } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { AdminLayout, PageHeader } from "@/components/admin/layout";
 import { StatCard } from "@/components/admin/stat-card";
@@ -14,6 +14,15 @@ const funnel = [
   { stage: "Mutual likes (matches)", value: 28, count: "69,580" },
   { stage: "Conversations started", value: 19, count: "47,120" },
   { stage: "Lasting connections", value: 7, count: "17,340" },
+];
+
+const recentMatches = [
+  { id: "m1", a: "Aisha Hassan", b: "Yusuf Khan", compat: 94, region: "London", status: "Chatting" },
+  { id: "m2", a: "Maryam Iqbal", b: "Ibrahim Ali", compat: 91, region: "Dubai", status: "Wali notified" },
+  { id: "m3", a: "Layla Rahman", b: "Khalid Malik", compat: 88, region: "Toronto", status: "Chatting" },
+  { id: "m4", a: "Hafsa Siddiqui", b: "Omar Ahmed", compat: 86, region: "Istanbul", status: "New" },
+  { id: "m5", a: "Nour Ahmed", b: "Bilal Qureshi", compat: 83, region: "Kuala Lumpur", status: "Chatting" },
+  { id: "m6", a: "Zainab Farooqi", b: "Hamza Hassan", compat: 79, region: "Karachi", status: "New" },
 ];
 
 function Matches() {
@@ -65,6 +74,30 @@ function Matches() {
           </div>
         </Card>
       </div>
+
+      <Card className="mt-6 p-5 shadow-elegant">
+        <h3 className="font-semibold mb-4 flex items-center gap-2">
+          <MessageCircle className="h-4 w-4 text-primary" /> Recent successful matches
+        </h3>
+        <div className="space-y-2">
+          {recentMatches.map((m) => (
+            <div key={m.id} className="flex items-center gap-3 p-3 rounded-lg border">
+              <Heart className="h-4 w-4 text-warning shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium truncate">{m.a} ↔ {m.b}</div>
+                <div className="text-xs text-muted-foreground">{m.region}</div>
+              </div>
+              <div className="hidden sm:flex items-center gap-2 w-32">
+                <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div className="h-full bg-gradient-primary" style={{ width: `${m.compat}%` }} />
+                </div>
+                <span className="text-xs tabular-nums text-muted-foreground">{m.compat}%</span>
+              </div>
+              <span className="text-xs text-muted-foreground w-24 text-right">{m.status}</span>
+            </div>
+          ))}
+        </div>
+      </Card>
     </AdminLayout>
   );
 }
