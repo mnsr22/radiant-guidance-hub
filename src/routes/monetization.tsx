@@ -24,15 +24,15 @@ type Plan = { id: string; name: string; price: number; period: "mo" | "yr"; feat
 const initialPlans: Plan[] = [
   { id: "free", name: "Free", price: 0, period: "mo", features: ["Daily matches", "Basic filters"], active: true },
   { id: "premium", name: "Premium", price: 19, period: "mo", features: ["Unlimited likes", "See who liked you", "Advanced filters"], active: true },
-  { id: "noor_plus", name: "Noor+", price: 39, period: "mo", features: ["Wali verification priority", "Profile boost", "Read receipts"], active: true },
+  { id: "hc_plus", name: "Halal Connect+", price: 39, period: "mo", features: ["Wali verification priority", "Profile boost", "Read receipts"], active: true },
 ];
 
 const transactions = [
   { id: "tx_001", user: "Aisha Hassan", plan: "Premium", amount: 19, status: "success", date: "5m ago" },
-  { id: "tx_002", user: "Yusuf Khan", plan: "Noor+", amount: 39, status: "success", date: "22m ago" },
+  { id: "tx_002", user: "Yusuf Khan", plan: "Halal Connect+", amount: 39, status: "success", date: "22m ago" },
   { id: "tx_003", user: "Maryam Iqbal", plan: "Premium", amount: 19, status: "refunded", date: "1h ago" },
   { id: "tx_004", user: "Ibrahim Ali", plan: "Premium (annual)", amount: 180, status: "success", date: "2h ago" },
-  { id: "tx_005", user: "Layla Rahman", plan: "Noor+", amount: 39, status: "failed", date: "3h ago" },
+  { id: "tx_005", user: "Layla Rahman", plan: "Halal Connect+", amount: 39, status: "failed", date: "3h ago" },
   { id: "tx_006", user: "Omar Siddiqui", plan: "Premium", amount: 19, status: "success", date: "4h ago" },
 ];
 

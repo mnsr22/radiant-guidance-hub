@@ -89,15 +89,15 @@ function MessagingPage() {
     switch (value) {
       case "warning":
         setSubject("Community guideline reminder");
-        setBody("As-salamu alaykum,\n\nWe noticed activity on your account that may not align with our community guidelines. Please review them and adjust your behavior accordingly. Repeated issues may lead to restrictions.\n\n— Noor Admin Team");
+        setBody("As-salamu alaykum,\n\nWe noticed activity on your account that may not align with our community guidelines. Please review them and adjust your behavior accordingly. Repeated issues may lead to restrictions.\n\n— Halal Connect Admin Team");
         break;
       case "followup":
         setSubject("Following up on your recent report");
-        setBody("As-salamu alaykum,\n\nThank you for taking the time to report a concern on Noor. Our moderation team has reviewed it and taken appropriate action. Please reply if you have any additional details.\n\n— Noor Admin Team");
+        setBody("As-salamu alaykum,\n\nThank you for taking the time to report a concern on Halal Connect. Our moderation team has reviewed it and taken appropriate action. Please reply if you have any additional details.\n\n— Halal Connect Admin Team");
         break;
       case "welcome":
-        setSubject("Welcome to Noor 💜");
-        setBody("As-salamu alaykum and welcome!\n\nWe're delighted to have you. Complete your profile to start receiving thoughtful, halal-friendly matches.\n\n— Noor Admin Team");
+        setSubject("Welcome to Halal Connect 💜");
+        setBody("As-salamu alaykum and welcome!\n\nWe're delighted to have you. Complete your profile to start receiving thoughtful, halal-friendly matches.\n\n— Halal Connect Admin Team");
         break;
       default:
         setSubject("");

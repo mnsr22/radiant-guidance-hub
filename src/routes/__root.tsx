@@ -30,8 +30,8 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Noor Admin — Halal Match Dashboard" },
-      { name: "description", content: "Admin dashboard for an Islamic dating & marriage platform." },
+      { title: "Halal Connect — Admin Dashboard" },
+      { name: "description", content: "Admin dashboard for Halal Connect, an Islamic dating & marriage platform." },
     ],
     links: [{ rel: "stylesheet", href: appCss }],
   }),
