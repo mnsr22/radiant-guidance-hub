@@ -69,8 +69,8 @@ export function SidebarBrand({ collapsed = false }: { collapsed?: boolean }) {
       </div>
       {!collapsed && (
         <div className="leading-tight">
-          <div className="text-sm font-semibold">Noor Admin</div>
-          <div className="text-[11px] text-muted-foreground">Halal Match · v1.0</div>
+          <div className="text-sm font-semibold">Halal Connect</div>
+          <div className="text-[11px] text-muted-foreground">Admin Dashboard · v1.0</div>
         </div>
       )}
     </Link>
