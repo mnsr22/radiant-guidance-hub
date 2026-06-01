@@ -1,0 +1,344 @@
+// Prisma schema for Noor Admin
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  MODERATOR
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+  BANNED
+}
+
+enum PracticeLevel {
+  HIGHLY_PRACTICING
+  PRACTICING
+  MODERATELY
+  LEARNING
+}
+
+enum Madhab {
+  HANAFI
+  MALIKI
+  SHAFII
+  HANBALI
+  OTHER
+}
+
+enum ReportCategory {
+  HARASSMENT
+  FAKE_PROFILE
+  INAPPROPRIATE
+  SPAM
+  OTHER
+}
+
+enum ReportSeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  RESOLVED
+}
+
+enum MatchStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum AdPlacement {
+  HOME_BANNER
+  BETWEEN_MATCHES
+  CHAT_TOP
+  PROFILE_SIDEBAR
+}
+
+enum AdAudience {
+  ALL
+  FREE
+  PREMIUM
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  EXPIRED
+  TRIAL
+}
+
+enum TransactionStatus {
+  SUCCESS
+  REFUNDED
+  FAILED
+  PENDING
+}
+
+model User {
+  id             String         @id @default(cuid())
+  email          String         @unique
+  passwordHash   String?
+  name           String
+  age            Int
+  gender         Gender
+  country        String
+  city           String
+  practice       PracticeLevel  @default(LEARNING)
+  madhab         Madhab         @default(OTHER)
+  status         UserStatus     @default(PENDING)
+  role           Role           @default(USER)
+  verified       Boolean        @default(false)
+  premium        Boolean        @default(false)
+  completeness   Int            @default(0)
+  bio            String?
+  avatarUrl      String?
+  lastActiveAt   DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  photos              Photo[]
+  sentMessages        Message[]       @relation("MessageSender")
+  conversationsA      Conversation[]  @relation("ConversationUserA")
+  conversationsB      Conversation[]  @relation("ConversationUserB")
+  matchesInitiated    Match[]         @relation("MatchInitiator")
+  matchesReceived     Match[]         @relation("MatchReceiver")
+  reportsMade         Report[]        @relation("Reporter")
+  reportsAgainst      Report[]        @relation("ReportedUser")
+  notifications       Notification[]
+  subscriptions       Subscription[]
+  transactions        Transaction[]
+  auditLogs           AuditLog[]
+  adminMessagesSent   AdminMessage[]  @relation("AdminMessageSender")
+  adminMessagesRecv   AdminMessage[]  @relation("AdminMessageRecipient")
+
+  @@index([status])
+  @@index([country])
+  @@index([createdAt])
+}
+
+model Photo {
+  id        String   @id @default(cuid())
+  userId    String
+  url       String
+  isPrivate Boolean  @default(false)
+  approved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Conversation {
+  id           String    @id @default(cuid())
+  userAId      String
+  userBId      String
+  flagged      Boolean   @default(false)
+  flagReason   String?
+  messageCount Int       @default(0)
+  lastMessageAt DateTime?
+  createdAt    DateTime  @default(now())
+
+  userA    User      @relation("ConversationUserA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB    User      @relation("ConversationUserB", fields: [userBId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@unique([userAId, userBId])
+  @@index([flagged])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  senderId       String
+  body           String
+  flagged        Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([senderId])
+}
+
+model Match {
+  id           String      @id @default(cuid())
+  initiatorId  String
+  receiverId   String
+  status       MatchStatus @default(PENDING)
+  compatibility Int        @default(0)
+  createdAt    DateTime    @default(now())
+  respondedAt  DateTime?
+
+  initiator User @relation("MatchInitiator", fields: [initiatorId], references: [id], onDelete: Cascade)
+  receiver  User @relation("MatchReceiver",  fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([initiatorId, receiverId])
+  @@index([status])
+}
+
+model Report {
+  id             String         @id @default(cuid())
+  reportedUserId String
+  reporterId     String
+  category       ReportCategory
+  severity       ReportSeverity @default(MEDIUM)
+  status         ReportStatus   @default(PENDING)
+  description    String?
+  resolvedAt     DateTime?
+  createdAt      DateTime       @default(now())
+
+  reportedUser User @relation("ReportedUser", fields: [reportedUserId], references: [id], onDelete: Cascade)
+  reporter     User @relation("Reporter",     fields: [reporterId],     references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([severity])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  body      String
+  type      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+}
+
+model AdminMessage {
+  id          String   @id @default(cuid())
+  senderId    String
+  recipientId String
+  subject     String
+  body        String
+  category    String   // "reported" | "follow_up" | etc.
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  sender    User @relation("AdminMessageSender",    fields: [senderId],    references: [id], onDelete: Cascade)
+  recipient User @relation("AdminMessageRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([recipientId, read])
+}
+
+model Ad {
+  id          String      @id @default(cuid())
+  title       String
+  description String
+  imageUrl    String
+  ctaLabel    String
+  ctaUrl      String
+  placement   AdPlacement
+  audience    AdAudience  @default(ALL)
+  active      Boolean     @default(true)
+  impressions Int         @default(0)
+  clicks      Int         @default(0)
+  startsAt    DateTime?
+  endsAt      DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([active, placement])
+}
+
+model Plan {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  priceCents  Int
+  currency    String   @default("USD")
+  interval    String   @default("month")
+  features    String[]
+  visible     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id           String             @id @default(cuid())
+  userId       String
+  planId       String
+  status       SubscriptionStatus @default(ACTIVE)
+  startedAt    DateTime           @default(now())
+  expiresAt    DateTime?
+  canceledAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan Plan @relation(fields: [planId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Transaction {
+  id          String            @id @default(cuid())
+  userId      String
+  amountCents Int
+  currency    String            @default("USD")
+  status      TransactionStatus @default(PENDING)
+  provider    String
+  providerRef String?
+  createdAt   DateTime          @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  adminId   String
+  action    String
+  target    String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  admin User @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([createdAt])
+}
+
+model IslamicSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  enabled   Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+}
+
+model AppSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  updatedAt DateTime @updatedAt
+}
