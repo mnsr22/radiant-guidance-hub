@@ -6,4 +6,12 @@
 // You can pass additional config via defineConfig({ vite: { ... } }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
-export default defineConfig();
+export default defineConfig({
+  // No Cloudflare/Nitro server bundle — emit a plain static build.
+  nitro: false,
+  // Client-only: ship a static SPA shell, render entirely in the browser.
+  // Emit the shell as index.html so any static host serves it by default.
+  tanstackStart: {
+    spa: { enabled: true, prerender: { outputPath: "/index" } },
+  },
+});
