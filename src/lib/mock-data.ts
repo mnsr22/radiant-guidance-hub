@@ -133,6 +133,7 @@ export const mockReports: Report[] = [
 export type Conversation = {
   id: string;
   participants: [string, string];
+  participantIds?: [string, string];
   messageCount: number;
   flagged: boolean;
   flagReason?: string;

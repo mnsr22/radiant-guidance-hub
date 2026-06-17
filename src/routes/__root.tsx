@@ -1,5 +1,7 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { Provider as ReduxProvider } from "react-redux";
 import { ThemeProvider } from "@/components/theme-provider";
+import { store } from "@/store";
 
 import appCss from "../styles.css?url";
 
@@ -56,8 +58,10 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   return (
-    <ThemeProvider>
-      <Outlet />
-    </ThemeProvider>
+    <ReduxProvider store={store}>
+      <ThemeProvider>
+        <Outlet />
+      </ThemeProvider>
+    </ReduxProvider>
   );
 }

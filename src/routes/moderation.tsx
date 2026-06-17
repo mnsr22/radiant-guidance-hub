@@ -14,13 +14,17 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { mockReports, type Report } from "@/lib/mock-data";
+import { type Report } from "@/lib/mock-data";
+import { useReports, useReportMutations, useStats } from "@/lib/admin-hooks";
 
 export const Route = createFileRoute("/moderation")({ component: Moderation });
 
 function Moderation() {
   const navigate = useNavigate();
-  const [reports, setReports] = useState<Report[]>(mockReports);
+  const { data } = useReports();
+  const reports = data ?? [];
+  const { data: stats } = useStats();
+  const reportMut = useReportMutations();
   const [reviewing, setReviewing] = useState<Report | null>(null);
   const [confirm, setConfirm] = useState<{ report: Report; action: "warn" | "ban" } | null>(null);
 
@@ -33,11 +37,9 @@ function Moderation() {
   function applyAction() {
     if (!confirm) return;
     const { report, action } = confirm;
-    setReports((prev) =>
-      prev.map((r) =>
-        r.id === report.id ? { ...r, status: action === "ban" ? "resolved" : "reviewed" } : r,
-      ),
-    );
+    const onError = (e: unknown) => toast.error(e instanceof Error ? e.message : "Action failed");
+    if (action === "ban") reportMut.ban.mutate(report.id, { onError });
+    else reportMut.resolve.mutate({ id: report.id, status: "reviewed" }, { onError });
     toast.success(
       action === "ban"
         ? `${report.reportedUser} has been banned`
@@ -58,7 +60,7 @@ function Moderation() {
         <StatCard label="Pending" value={String(counts.pending)} icon={AlertTriangle} accent="warning" />
         <StatCard label="High severity" value={String(counts.high)} icon={ShieldAlert} accent="destructive" />
         <StatCard label="Resolved (7d)" value={String(counts.resolved)} icon={MessageCircle} accent="success" />
-        <StatCard label="Banned today" value="3" icon={Ban} accent="destructive" />
+        <StatCard label="Banned today" value={String(stats?.bannedToday ?? 0)} icon={Ban} accent="destructive" />
       </div>
 
       <Card className="p-5 shadow-elegant">

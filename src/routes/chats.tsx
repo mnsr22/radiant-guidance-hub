@@ -13,12 +13,15 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { mockConversations, type Conversation } from "@/lib/mock-data";
+import { type Conversation } from "@/lib/mock-data";
+import { useConversations, useDeleteConversation, useConversationMessages } from "@/lib/admin-hooks";
 
 export const Route = createFileRoute("/chats")({ component: Chats });
 
 function Chats() {
-  const [conversations, setConversations] = useState<Conversation[]>(mockConversations);
+  const { data } = useConversations();
+  const conversations = data ?? [];
+  const delConv = useDeleteConversation();
   const [viewing, setViewing] = useState<Conversation | null>(null);
   const [confirm, setConfirm] = useState<{ conv: Conversation; action: "restrict" | "delete" } | null>(null);
 
@@ -28,14 +31,13 @@ function Chats() {
     if (!confirm) return;
     const { conv, action } = confirm;
     if (action === "delete") {
-      setConversations((prev) => prev.filter((c) => c.id !== conv.id));
-      toast.success(`Conversation between ${conv.participants[0]} & ${conv.participants[1]} deleted`);
+      delConv.mutate(conv.id, {
+        onSuccess: () =>
+          toast.success(`Conversation between ${conv.participants[0]} & ${conv.participants[1]} deleted`),
+        onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to delete"),
+      });
     } else {
-      setConversations((prev) =>
-        prev.map((c) =>
-          c.id === conv.id ? { ...c, flagged: true, flagReason: c.flagReason ?? "Restricted by admin" } : c,
-        ),
-      );
+      // No backend "restrict" endpoint yet — acknowledge in the UI only.
       toast.success(`Conversation restricted`);
     }
     setConfirm(null);
@@ -102,37 +104,7 @@ function Chats() {
       {/* View dialog */}
       <Dialog open={!!viewing} onOpenChange={(o) => !o && setViewing(null)}>
         <DialogContent className="sm:max-w-lg">
-          {viewing && (
-            <>
-              <DialogHeader>
-                <DialogTitle>{viewing.participants[0]} ↔ {viewing.participants[1]}</DialogTitle>
-                <DialogDescription>
-                  {viewing.messageCount} messages · last activity {viewing.lastMessage}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-2 max-h-72 overflow-y-auto rounded-lg border bg-muted/20 p-3 text-sm">
-                {[
-                  { from: viewing.participants[0], text: "As-salamu alaykum, hope you're well." },
-                  { from: viewing.participants[1], text: "Wa alaykum as-salam, alhamdulillah." },
-                  { from: viewing.participants[0], text: "Would your wali be open to a call this week?" },
-                  { from: viewing.participants[1], text: "Yes, in sha Allah. I'll arrange it." },
-                ].map((m, i) => (
-                  <div key={i} className="rounded-lg bg-background border px-3 py-2">
-                    <div className="text-[11px] font-medium text-muted-foreground">{m.from}</div>
-                    <div>{m.text}</div>
-                  </div>
-                ))}
-              </div>
-              {viewing.flagReason && (
-                <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs">
-                  <span className="font-semibold text-destructive">Flag reason:</span> {viewing.flagReason}
-                </div>
-              )}
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setViewing(null)}>Close</Button>
-              </DialogFooter>
-            </>
-          )}
+          {viewing && <ConversationView conv={viewing} onClose={() => setViewing(null)} />}
         </DialogContent>
       </Dialog>
 
@@ -165,5 +137,49 @@ function Chats() {
         </AlertDialogContent>
       </AlertDialog>
     </AdminLayout>
+  );
+}
+
+function ConversationView({ conv, onClose }: { conv: Conversation; onClose: () => void }) {
+  const { data: messages, isLoading } = useConversationMessages(conv.id);
+  const nameFor = (senderId: string) => {
+    const ids = conv.participantIds;
+    if (ids && senderId === ids[1]) return conv.participants[1];
+    if (ids && senderId === ids[0]) return conv.participants[0];
+    return conv.participants[0];
+  };
+
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>{conv.participants[0]} ↔ {conv.participants[1]}</DialogTitle>
+        <DialogDescription>
+          {conv.messageCount} messages · last activity {conv.lastMessage}
+        </DialogDescription>
+      </DialogHeader>
+      <div className="space-y-2 max-h-72 overflow-y-auto rounded-lg border bg-muted/20 p-3 text-sm">
+        {isLoading && <div className="p-4 text-center text-muted-foreground">Loading messages…</div>}
+        {!isLoading && (messages ?? []).length === 0 && (
+          <div className="p-4 text-center text-muted-foreground">No messages in this conversation.</div>
+        )}
+        {((messages ?? []) as any[]).map((m) => (
+          <div key={m.id} className="rounded-lg bg-background border px-3 py-2">
+            <div className="flex items-center justify-between">
+              <div className="text-[11px] font-medium text-muted-foreground">{nameFor(m.senderId)}</div>
+              {m.flagged && <Flag className="h-3 w-3 text-destructive" />}
+            </div>
+            <div>{m.type && m.type !== "text" ? `[${m.type}]` : m.text}</div>
+          </div>
+        ))}
+      </div>
+      {conv.flagReason && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs">
+          <span className="font-semibold text-destructive">Flag reason:</span> {conv.flagReason}
+        </div>
+      )}
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose}>Close</Button>
+      </DialogFooter>
+    </>
   );
 }

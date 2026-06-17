@@ -16,6 +16,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
+import { useAds, useAdMutations } from "@/lib/admin-hooks";
 
 export const Route = createFileRoute("/ads")({ component: AdsPage });
 
@@ -32,6 +33,28 @@ type Ad = {
   createdAt: string;
 };
 
+// Backend uses UPPER_CASE placement/audience enums + body/ctaText/targetUrl/isActive.
+const placementToApi = (p: Ad["placement"]) => p.toUpperCase();
+const placementFromApi = (p: string) => p.toLowerCase() as Ad["placement"];
+const audienceToApi = (a: Ad["audience"]) => (a === "new" ? "ALL" : a.toUpperCase());
+const audienceFromApi = (a: string) =>
+  (["all", "free", "premium"].includes(a.toLowerCase()) ? a.toLowerCase() : "all") as Ad["audience"];
+
+function mapApiAd(x: any): Ad {
+  return {
+    id: x.id,
+    title: x.title ?? "",
+    description: x.body ?? "",
+    ctaLabel: x.ctaText ?? "Learn more",
+    ctaUrl: x.targetUrl ?? "",
+    placement: placementFromApi(x.placement ?? "HOME_BANNER"),
+    audience: audienceFromApi(x.audience ?? "ALL"),
+    imageUrl: x.imageUrl ?? "",
+    active: !!x.isActive,
+    createdAt: x.createdAt ? new Date(x.createdAt).toLocaleDateString() : "—",
+  };
+}
+
 const placementLabel: Record<Ad["placement"], string> = {
   home_banner: "Home Banner",
   between_matches: "Between Matches",
@@ -46,24 +69,10 @@ const audienceLabel: Record<Ad["audience"], string> = {
   new: "New signups",
 };
 
-const seed: Ad[] = [
-  {
-    id: "ad_001",
-    title: "Find your halal match",
-    description: "Upgrade to Premium for unlimited matches.",
-    ctaLabel: "Upgrade",
-    ctaUrl: "https://example.com/premium",
-    placement: "home_banner",
-    audience: "free",
-    imageUrl:
-      "https://images.unsplash.com/photo-1529070538774-1843cb3265df?w=800&h=300&fit=crop",
-    active: true,
-    createdAt: "2 days ago",
-  },
-];
-
 function AdsPage() {
-  const [ads, setAds] = useState<Ad[]>(seed);
+  const { data: rawAds } = useAds();
+  const ads = (rawAds ?? []).map(mapApiAd);
+  const adMut = useAdMutations();
   const [open, setOpen] = useState(false);
   const [preview, setPreview] = useState<Ad | null>(null);
 
@@ -99,28 +108,33 @@ function AdsPage() {
       toast.error("Add a title and image");
       return;
     }
-    const ad: Ad = {
-      id: `ad_${Date.now()}`,
-      title: title.trim(),
-      description: description.trim(),
-      ctaLabel: ctaLabel.trim() || "Learn more",
-      ctaUrl: ctaUrl.trim(),
-      placement, audience, imageUrl,
-      active: true,
-      createdAt: "just now",
-    };
-    setAds((prev) => [ad, ...prev]);
-    toast.success("Ad published to mobile app");
-    setOpen(false);
-    reset();
+    adMut.create.mutate(
+      {
+        title: title.trim(),
+        body: description.trim() || undefined,
+        ctaText: ctaLabel.trim() || "Learn more",
+        targetUrl: ctaUrl.trim() || undefined,
+        imageUrl,
+        placement: placementToApi(placement),
+        audience: audienceToApi(audience),
+        isActive: true,
+      },
+      {
+        onSuccess: () => {
+          toast.success("Ad published to mobile app");
+          setOpen(false);
+          reset();
+        },
+        onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to publish"),
+      },
+    );
   }
 
-  function toggle(id: string) {
-    setAds((prev) => prev.map((a) => (a.id === id ? { ...a, active: !a.active } : a)));
+  function toggle(ad: Ad) {
+    adMut.update.mutate({ id: ad.id, body: { isActive: !ad.active } });
   }
   function remove(id: string) {
-    setAds((prev) => prev.filter((a) => a.id !== id));
-    toast.success("Ad removed");
+    adMut.remove.mutate(id, { onSuccess: () => toast.success("Ad removed") });
   }
 
   return (
@@ -239,7 +253,7 @@ function AdsPage() {
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Switch checked={ad.active} onCheckedChange={() => toggle(ad.id)} />
+                  <Switch checked={ad.active} onCheckedChange={() => toggle(ad)} />
                   <span className="text-xs text-muted-foreground">Active</span>
                 </div>
                 <div className="flex gap-1">

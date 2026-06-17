@@ -16,7 +16,8 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { mockUsers, mockReports, type MockUser } from "@/lib/mock-data";
+import { type MockUser } from "@/lib/mock-data";
+import { useUsers, useReports, useMessaging } from "@/lib/admin-hooks";
 
 export const Route = createFileRoute("/messaging")({ component: MessagingPage });
 
@@ -41,16 +42,24 @@ function MessagingPage() {
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
 
-  const reportedNames = useMemo(() => new Set(mockReports.map((r) => r.reportedUser)), []);
+  const { data: usersData } = useUsers();
+  const users = usersData?.users ?? [];
+  const { data: reportsData } = useReports();
+  const { sendBulk } = useMessaging();
+
+  const reportedNames = useMemo(
+    () => new Set((reportsData ?? []).map((r) => r.reportedUser)),
+    [reportsData],
+  );
 
   const buckets: Record<Category, MockUser[]> = useMemo(() => ({
-    all: mockUsers,
-    reported: mockUsers.filter((u) => reportedNames.has(u.name)),
-    premium: mockUsers.filter((u) => u.premium),
-    verified: mockUsers.filter((u) => u.verified),
-    banned: mockUsers.filter((u) => u.status === "banned"),
-    pending: mockUsers.filter((u) => u.status === "pending"),
-  }), [reportedNames]);
+    all: users,
+    reported: users.filter((u) => reportedNames.has(u.name)),
+    premium: users.filter((u) => u.premium),
+    verified: users.filter((u) => u.verified),
+    banned: users.filter((u) => u.status === "banned"),
+    pending: users.filter((u) => u.status === "pending"),
+  }), [users, reportedNames]);
 
   const list = useMemo(() => {
     const base = buckets[tab];
@@ -110,9 +119,17 @@ function MessagingPage() {
       toast.error("Subject and message are required");
       return;
     }
-    toast.success(`Message sent to ${composeTarget.length} user${composeTarget.length === 1 ? "" : "s"}`);
-    setComposeOpen(false);
-    setSelected({});
+    sendBulk.mutate(
+      { userIds: composeTarget.map((u) => u.id), subject, body },
+      {
+        onSuccess: () => {
+          toast.success(`Message sent to ${composeTarget.length} user${composeTarget.length === 1 ? "" : "s"}`);
+          setComposeOpen(false);
+          setSelected({});
+        },
+        onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to send"),
+      },
+    );
   }
 
   return (

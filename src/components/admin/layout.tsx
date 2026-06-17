@@ -1,12 +1,21 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { AdminSidebar, SidebarNav, SidebarBrand } from "./sidebar";
 import { AdminTopbar } from "./topbar";
 import { cn } from "@/lib/utils";
+import { getToken } from "@/lib/api";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 export function AdminLayout({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const navigate = useNavigate();
+
+  // Gate the whole admin shell: no token → bounce to /login.
+  useEffect(() => {
+    if (!getToken()) navigate({ to: "/login" });
+  }, [navigate]);
+
   return (
     <div className="min-h-screen bg-background">
       <AdminSidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />

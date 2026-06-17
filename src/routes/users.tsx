@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   Search, Filter, Download, MoreHorizontal, ShieldCheck, Crown, MapPin,
-  Send, Ban, ShieldOff, UserCheck, Eye,
+  Send, Ban, ShieldOff, UserCheck, Eye, ChevronLeft, ChevronRight, Plus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AdminLayout, PageHeader } from "@/components/admin/layout";
@@ -27,7 +27,8 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
-import { mockUsers, type MockUser } from "@/lib/mock-data";
+import { type MockUser } from "@/lib/mock-data";
+import { useUsers, useUserMutations } from "@/lib/admin-hooks";
 import { downloadCSV } from "@/lib/csv";
 
 export const Route = createFileRoute("/users")({
@@ -36,54 +37,91 @@ export const Route = createFileRoute("/users")({
 
 function UsersPage() {
   const navigate = useNavigate();
-  const [users, setUsers] = useState<MockUser[]>(mockUsers);
   const [q, setQ] = useState("");
+  const [search, setSearch] = useState(""); // debounced, sent to the server
   const [status, setStatus] = useState<string>("all");
   const [practice, setPractice] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+
+  // Debounce the search box so we don't refetch on every keystroke.
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(q.trim()), 350);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  // Any filter/page-size change returns to the first page.
+  useEffect(() => {
+    setPage(1);
+  }, [search, status, practice, limit]);
+
+  const { data, isLoading, isFetching } = useUsers({
+    page,
+    limit,
+    search: search || undefined,
+    status: status as MockUser["status"] | "all",
+    practice,
+  });
+  const users = data?.users ?? [];
+  const total = data?.total ?? 0;
+  const pageCount = Math.max(1, Math.ceil(total / limit));
+  const rangeStart = total === 0 ? 0 : (page - 1) * limit + 1;
+  const rangeEnd = Math.min(page * limit, total);
+
+  const userMut = useUserMutations();
   const [viewUser, setViewUser] = useState<MockUser | null>(null);
   const [confirm, setConfirm] = useState<{ user: MockUser; action: "ban" | "unban" | "verify" } | null>(null);
-  const [addAdminOpen, setAddAdminOpen] = useState(false);
-  const [adminEmail, setAdminEmail] = useState("");
-  const [adminRole, setAdminRole] = useState("moderator");
-
-  const filtered = useMemo(() => {
-    return users.filter((u) => {
-      if (status !== "all" && u.status !== status) return false;
-      if (practice !== "all" && u.practice !== practice) return false;
-      if (q && !`${u.name} ${u.email} ${u.country}`.toLowerCase().includes(q.toLowerCase())) return false;
-      return true;
-    });
-  }, [users, q, status, practice]);
+  const [addOpen, setAddOpen] = useState(false);
+  const [form, setForm] = useState({ name: "", email: "", password: "", role: "user", status: "active" });
+  const [creating, setCreating] = useState(false);
 
   function handleExport() {
-    downloadCSV("noor-users", filtered, [
+    downloadCSV("noor-users", users, [
       "id", "name", "email", "age", "gender", "country", "city",
       "practice", "madhab", "status", "verified", "premium", "completeness", "joined",
     ]);
-    toast.success(`Exported ${filtered.length} users to CSV`);
+    toast.success(`Exported ${users.length} users on this page to CSV`);
   }
 
-  function handleAddAdmin() {
-    if (!adminEmail.trim() || !/^\S+@\S+\.\S+$/.test(adminEmail)) {
-      toast.error("Enter a valid email");
-      return;
-    }
-    toast.success(`Invite sent to ${adminEmail} as ${adminRole}`);
-    setAdminEmail("");
-    setAdminRole("moderator");
-    setAddAdminOpen(false);
+  function resetForm() {
+    setForm({ name: "", email: "", password: "", role: "user", status: "active" });
+  }
+
+  function handleCreate() {
+    if (!form.name.trim()) return toast.error("Enter a name");
+    if (!/^\S+@\S+\.\S+$/.test(form.email)) return toast.error("Enter a valid email");
+    if (form.password.length < 6) return toast.error("Password must be at least 6 characters");
+    setCreating(true);
+    userMut.create.mutate(
+      {
+        name: form.name.trim(),
+        email: form.email.trim(),
+        password: form.password,
+        role: form.role as "user" | "admin",
+        status: form.status,
+      },
+      {
+        onSuccess: () => {
+          toast.success(`${form.role === "admin" ? "Admin" : "User"} ${form.name} created`);
+          setCreating(false);
+          setAddOpen(false);
+          resetForm();
+        },
+        onError: (e) => {
+          toast.error(e instanceof Error ? e.message : "Failed to create user");
+          setCreating(false);
+        },
+      },
+    );
   }
 
   function applyAction() {
     if (!confirm) return;
     const { user, action } = confirm;
-    setUsers((prev) => prev.map((u) => {
-      if (u.id !== user.id) return u;
-      if (action === "ban") return { ...u, status: "banned" };
-      if (action === "unban") return { ...u, status: "active" };
-      if (action === "verify") return { ...u, verified: true };
-      return u;
-    }));
+    const onError = (e: unknown) => toast.error(e instanceof Error ? e.message : "Action failed");
+    if (action === "ban") userMut.setStatus.mutate({ id: user.id, status: "banned" }, { onError });
+    else if (action === "unban") userMut.setStatus.mutate({ id: user.id, status: "active" }, { onError });
+    else if (action === "verify") userMut.verify.mutate({ id: user.id, verified: true }, { onError });
     const labels = { ban: "banned", unban: "reinstated", verify: "verified" } as const;
     toast.success(`${user.name} has been ${labels[action]}`);
     setConfirm(null);
@@ -93,7 +131,7 @@ function UsersPage() {
     <AdminLayout>
       <PageHeader
         title="User Management"
-        description={`${filtered.length} of ${users.length} users`}
+        description={isLoading ? "Loading users…" : `${total.toLocaleString()} users${isFetching ? " · refreshing…" : ""}`}
         actions={
           <>
             <Button variant="outline" size="sm" onClick={handleExport}>
@@ -101,10 +139,10 @@ function UsersPage() {
             </Button>
             <Button
               size="sm"
-              onClick={() => setAddAdminOpen(true)}
+              onClick={() => setAddOpen(true)}
               className="bg-gradient-primary text-primary-foreground border-0 shadow-elegant"
             >
-              Add Admin
+              <Plus className="h-4 w-4 mr-2" />Add User
             </Button>
           </>
         }
@@ -163,7 +201,14 @@ function UsersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.slice(0, 25).map((u) => (
+              {!isLoading && users.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={8} className="h-24 text-center text-sm text-muted-foreground">
+                    No users match these filters.
+                  </TableCell>
+                </TableRow>
+              )}
+              {users.map((u) => (
                 <TableRow key={u.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -254,6 +299,49 @@ function UsersPage() {
             </TableBody>
           </Table>
         </div>
+
+        {/* Pagination */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t px-4 py-3">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>Rows per page</span>
+            <Select value={String(limit)} onValueChange={(v) => setLimit(Number(v))}>
+              <SelectTrigger className="h-8 w-[72px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {[10, 20, 50, 100].map((n) => (
+                  <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-muted-foreground tabular-nums">
+              {rangeStart}–{rangeEnd} of {total.toLocaleString()}
+            </span>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                disabled={page <= 1 || isFetching}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                aria-label="Previous page"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm tabular-nums px-1">Page {page} of {pageCount}</span>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                disabled={page >= pageCount || isFetching}
+                onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+                aria-label="Next page"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
       </Card>
 
       {/* View profile dialog */}
@@ -293,34 +381,57 @@ function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Add admin dialog */}
-      <Dialog open={addAdminOpen} onOpenChange={setAddAdminOpen}>
+      {/* Add user / admin dialog */}
+      <Dialog open={addOpen} onOpenChange={(o) => { setAddOpen(o); if (!o) resetForm(); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Invite an admin</DialogTitle>
-            <DialogDescription>They will receive an email to accept the role.</DialogDescription>
+            <DialogTitle>Add a user</DialogTitle>
+            <DialogDescription>
+              Creates an account directly. The email is marked verified.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <Label htmlFor="admin-email">Email</Label>
-              <Input id="admin-email" type="email" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} placeholder="name@example.com" />
+              <Label htmlFor="new-name">Full name</Label>
+              <Input id="new-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Aisha Hassan" />
             </div>
             <div className="space-y-1.5">
-              <Label>Role</Label>
-              <Select value={adminRole} onValueChange={setAdminRole}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="super_admin">Super Admin</SelectItem>
-                  <SelectItem value="moderator">Moderator</SelectItem>
-                  <SelectItem value="support">Support Staff</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="new-email">Email</Label>
+              <Input id="new-email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="name@example.com" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="new-password">Temporary password</Label>
+              <Input id="new-password" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="At least 6 characters" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Role</Label>
+                <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user">User</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Status</Label>
+                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="suspended">Suspended</SelectItem>
+                    <SelectItem value="banned">Banned</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAddAdminOpen(false)}>Cancel</Button>
-            <Button onClick={handleAddAdmin} className="bg-gradient-primary text-primary-foreground border-0">
-              Send invite
+            <Button variant="outline" onClick={() => { setAddOpen(false); resetForm(); }}>Cancel</Button>
+            <Button onClick={handleCreate} disabled={creating} className="bg-gradient-primary text-primary-foreground border-0">
+              {creating ? "Creating…" : "Create user"}
             </Button>
           </DialogFooter>
         </DialogContent>

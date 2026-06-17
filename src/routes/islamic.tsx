@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Moon, Star, BookOpen, Sparkles } from "lucide-react";
 import { toast } from "sonner";
@@ -6,8 +5,22 @@ import { AdminLayout, PageHeader } from "@/components/admin/layout";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import {
+  useIslamicSettings,
+  useIslamicMutation,
+  useSettings,
+  useSettingsMutation,
+} from "@/lib/admin-hooks";
 
 export const Route = createFileRoute("/islamic")({ component: IslamicPage });
+
+// Dashboard toggle labels that map to the backend IslamicSetting flags. Anything
+// not listed here is persisted to the generic AppSetting key/value store.
+const ISLAMIC_FLAG: Record<string, string> = {
+  "Show prayer times in profile": "prayerTimesEnabled",
+  "Ramadan special reminders": "ramadanMode",
+  "Morning Qur'an verse": "dailyContentEnabled",
+};
 
 const reminderItems = [
   "Morning Qur'an verse",
@@ -34,21 +47,27 @@ const filterItems = [
   "No first-name display until match",
 ];
 
-function useToggleMap(initial: Record<string, boolean>) {
-  const [state, setState] = useState(initial);
-  return {
-    state,
-    toggle: (key: string, on: boolean) => {
-      setState((s) => ({ ...s, [key]: on }));
-      toast.success(`${key} ${on ? "enabled" : "disabled"}`);
-    },
-  };
-}
-
 function IslamicPage() {
-  const reminders = useToggleMap(Object.fromEntries(reminderItems.map((r) => [r, true])));
-  const prayer = useToggleMap(Object.fromEntries(prayerItems.map((p) => [p.label, p.on])));
-  const filters = useToggleMap(Object.fromEntries(filterItems.map((f) => [f, true])));
+  const { data: islamic } = useIslamicSettings();
+  const { data: appSettings } = useSettings();
+  const islamicMut = useIslamicMutation();
+  const settingsMut = useSettingsMutation();
+
+  // True/false for a toggle: real islamic flag if mapped, else the stored
+  // AppSetting value (defaulting to on).
+  function isOn(label: string): boolean {
+    const flag = ISLAMIC_FLAG[label];
+    if (flag) return islamic ? !!(islamic as Record<string, unknown>)[flag] : true;
+    const v = appSettings?.[label];
+    return v === undefined ? true : !!v;
+  }
+
+  function setFlag(label: string, on: boolean) {
+    const flag = ISLAMIC_FLAG[label];
+    if (flag) islamicMut.mutate({ [flag]: on });
+    else settingsMut.mutate({ [label]: on });
+    toast.success(`${label} ${on ? "enabled" : "disabled"}`);
+  }
 
   return (
     <AdminLayout>
@@ -69,7 +88,7 @@ function IslamicPage() {
             {reminderItems.map((r) => (
               <div key={r} className="flex items-center justify-between p-3 rounded-lg border">
                 <Label className="text-sm">{r}</Label>
-                <Switch checked={reminders.state[r]} onCheckedChange={(v) => reminders.toggle(r, v)} />
+                <Switch checked={isOn(r)} onCheckedChange={(v) => setFlag(r, v)} />
               </div>
             ))}
           </div>
@@ -89,7 +108,7 @@ function IslamicPage() {
             {prayerItems.map((p) => (
               <div key={p.label} className="flex items-center justify-between p-3 rounded-lg border">
                 <Label className="text-sm">{p.label}</Label>
-                <Switch checked={prayer.state[p.label]} onCheckedChange={(v) => prayer.toggle(p.label, v)} />
+                <Switch checked={isOn(p.label)} onCheckedChange={(v) => setFlag(p.label, v)} />
               </div>
             ))}
           </div>
@@ -112,7 +131,7 @@ function IslamicPage() {
                   <Star className="h-3.5 w-3.5 text-primary" />
                   {r}
                 </Label>
-                <Switch checked={filters.state[r]} onCheckedChange={(v) => filters.toggle(r, v)} />
+                <Switch checked={isOn(r)} onCheckedChange={(v) => setFlag(r, v)} />
               </div>
             ))}
           </div>

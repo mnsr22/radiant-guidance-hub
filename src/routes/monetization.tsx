@@ -14,37 +14,77 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { userGrowth } from "@/lib/mock-data";
+import {
+  usePlans,
+  usePlanMutations,
+  useBillingStats,
+  useBillingRevenue,
+  useTransactions,
+} from "@/lib/admin-hooks";
 
 export const Route = createFileRoute("/monetization")({ component: Monetization });
 
-const revenueData = userGrowth.map((m) => ({ month: m.month, revenue: Math.round(m.users * 0.42) }));
+const money = (cents: number) =>
+  `$${(cents / 100).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+const rel = (iso?: string) => {
+  if (!iso) return "";
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+};
 
 type Plan = { id: string; name: string; price: number; period: "mo" | "yr"; features: string[]; active: boolean };
-const initialPlans: Plan[] = [
-  { id: "free", name: "Free", price: 0, period: "mo", features: ["Daily matches", "Basic filters"], active: true },
-  { id: "premium", name: "Premium", price: 19, period: "mo", features: ["Unlimited likes", "See who liked you", "Advanced filters"], active: true },
-  { id: "hc_plus", name: "Halal Connect+", price: 39, period: "mo", features: ["Wali verification priority", "Profile boost", "Read receipts"], active: true },
-];
 
-const transactions = [
-  { id: "tx_001", user: "Aisha Hassan", plan: "Premium", amount: 19, status: "success", date: "5m ago" },
-  { id: "tx_002", user: "Yusuf Khan", plan: "Halal Connect+", amount: 39, status: "success", date: "22m ago" },
-  { id: "tx_003", user: "Maryam Iqbal", plan: "Premium", amount: 19, status: "refunded", date: "1h ago" },
-  { id: "tx_004", user: "Ibrahim Ali", plan: "Premium (annual)", amount: 180, status: "success", date: "2h ago" },
-  { id: "tx_005", user: "Layla Rahman", plan: "Halal Connect+", amount: 39, status: "failed", date: "3h ago" },
-  { id: "tx_006", user: "Omar Siddiqui", plan: "Premium", amount: 19, status: "success", date: "4h ago" },
-];
+function mapPlan(x: any): Plan {
+  return {
+    id: x.id,
+    name: x.name ?? "",
+    price: Math.round((x.priceCents ?? 0) / 100),
+    period: x.interval === "year" ? "yr" : "mo",
+    features: (x.features ?? []) as string[],
+    active: x.visible !== false,
+  };
+}
 
 function Monetization() {
-  const [plans, setPlans] = useState<Plan[]>(initialPlans);
+  const { data: rawPlans } = usePlans();
+  const plans = (rawPlans ?? []).map(mapPlan);
+  const planMut = usePlanMutations();
+  const { data: billing } = useBillingStats();
+  const { data: revenue } = useBillingRevenue();
+  const { data: txns } = useTransactions();
   const [editing, setEditing] = useState<Plan | null>(null);
+
+  const revenueData = ((revenue ?? []) as any[]).map((r) => ({
+    month: r.month,
+    revenue: Math.round((r.revenueCents ?? 0) / 100),
+  }));
+  const transactions = ((txns ?? []) as any[]).map((t) => ({
+    id: t.id,
+    user: t.user,
+    plan: t.plan,
+    amount: Math.round((t.amountCents ?? 0) / 100),
+    status: t.status === "succeeded" ? "success" : t.status,
+    date: rel(t.createdAt),
+  }));
 
   function savePlan() {
     if (!editing) return;
-    setPlans((p) => p.map((x) => x.id === editing.id ? editing : x));
-    toast.success(`${editing.name} plan updated`);
-    setEditing(null);
+    const name = editing.name;
+    planMut.update.mutate(
+      { id: editing.id, body: { name: editing.name, priceCents: editing.price * 100 } },
+      {
+        onSuccess: () => {
+          toast.success(`${name} plan updated`);
+          setEditing(null);
+        },
+        onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to update plan"),
+      },
+    );
   }
 
   return (
@@ -52,10 +92,10 @@ function Monetization() {
       <PageHeader title="Monetization" description="Subscriptions, premium tier and revenue overview." />
 
       <div className="grid gap-4 md:grid-cols-4 mb-6">
-        <StatCard label="MRR" value="$48,240" delta={{ value: "+14.2%", positive: true }} icon={DollarSign} accent="success" />
-        <StatCard label="Premium users" value="2,184" delta={{ value: "+9.6%", positive: true }} icon={Crown} accent="warning" />
-        <StatCard label="ARPU" value="$22.10" delta={{ value: "+2.1%", positive: true }} icon={TrendingUp} accent="primary" />
-        <StatCard label="Active subs" value="2,420" delta={{ value: "+5.4%", positive: true }} icon={CreditCard} accent="primary" />
+        <StatCard label="MRR" value={money(billing?.mrrCents ?? 0)} icon={DollarSign} accent="success" />
+        <StatCard label="Premium users" value={(billing?.premiumUsers ?? 0).toLocaleString()} icon={Crown} accent="warning" />
+        <StatCard label="ARPU" value={money(billing?.arpuCents ?? 0)} icon={TrendingUp} accent="primary" />
+        <StatCard label="Active subs" value={(billing?.activeSubs ?? 0).toLocaleString()} icon={CreditCard} accent="primary" />
       </div>
 
       <Card className="p-5 shadow-elegant mb-6">
@@ -93,7 +133,7 @@ function Monetization() {
                 <Switch
                   checked={p.active}
                   onCheckedChange={(v) => {
-                    setPlans((all) => all.map((x) => x.id === p.id ? { ...x, active: v } : x));
+                    planMut.update.mutate({ id: p.id, body: { visible: v } });
                     toast.success(`${p.name} ${v ? "enabled" : "hidden"}`);
                   }}
                 />
@@ -110,6 +150,9 @@ function Monetization() {
       <Card className="p-5 shadow-elegant">
         <h3 className="font-semibold mb-4">Recent transactions</h3>
         <div className="space-y-2">
+          {transactions.length === 0 && (
+            <div className="p-8 text-center text-sm text-muted-foreground">No transactions yet.</div>
+          )}
           {transactions.map((t) => (
             <div key={t.id} className="flex items-center gap-4 p-3 rounded-lg border">
               <div className="flex-1 min-w-0">

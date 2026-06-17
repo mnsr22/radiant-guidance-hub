@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UsersRouteImport } from './routes/users'
+import { Route as SupportRouteImport } from './routes/support'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MonetizationRouteImport } from './routes/monetization'
@@ -17,6 +18,7 @@ import { Route as ModerationRouteImport } from './routes/moderation'
 import { Route as MessagingRouteImport } from './routes/messaging'
 import { Route as MatchesRouteImport } from './routes/matches'
 import { Route as LogsRouteImport } from './routes/logs'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as LiveRouteImport } from './routes/live'
 import { Route as IslamicRouteImport } from './routes/islamic'
 import { Route as ChatsRouteImport } from './routes/chats'
@@ -26,6 +28,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const UsersRoute = UsersRouteImport.update({
   id: '/users',
   path: '/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupportRoute = SupportRouteImport.update({
+  id: '/support',
+  path: '/support',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -63,6 +70,11 @@ const LogsRoute = LogsRouteImport.update({
   path: '/logs',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LiveRoute = LiveRouteImport.update({
   id: '/live',
   path: '/live',
@@ -95,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/chats': typeof ChatsRoute
   '/islamic': typeof IslamicRoute
   '/live': typeof LiveRoute
+  '/login': typeof LoginRoute
   '/logs': typeof LogsRoute
   '/matches': typeof MatchesRoute
   '/messaging': typeof MessagingRoute
@@ -102,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/monetization': typeof MonetizationRoute
   '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRoute
+  '/support': typeof SupportRoute
   '/users': typeof UsersRoute
 }
 export interface FileRoutesByTo {
@@ -110,6 +124,7 @@ export interface FileRoutesByTo {
   '/chats': typeof ChatsRoute
   '/islamic': typeof IslamicRoute
   '/live': typeof LiveRoute
+  '/login': typeof LoginRoute
   '/logs': typeof LogsRoute
   '/matches': typeof MatchesRoute
   '/messaging': typeof MessagingRoute
@@ -117,6 +132,7 @@ export interface FileRoutesByTo {
   '/monetization': typeof MonetizationRoute
   '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRoute
+  '/support': typeof SupportRoute
   '/users': typeof UsersRoute
 }
 export interface FileRoutesById {
@@ -126,6 +142,7 @@ export interface FileRoutesById {
   '/chats': typeof ChatsRoute
   '/islamic': typeof IslamicRoute
   '/live': typeof LiveRoute
+  '/login': typeof LoginRoute
   '/logs': typeof LogsRoute
   '/matches': typeof MatchesRoute
   '/messaging': typeof MessagingRoute
@@ -133,6 +150,7 @@ export interface FileRoutesById {
   '/monetization': typeof MonetizationRoute
   '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRoute
+  '/support': typeof SupportRoute
   '/users': typeof UsersRoute
 }
 export interface FileRouteTypes {
@@ -143,6 +161,7 @@ export interface FileRouteTypes {
     | '/chats'
     | '/islamic'
     | '/live'
+    | '/login'
     | '/logs'
     | '/matches'
     | '/messaging'
@@ -150,6 +169,7 @@ export interface FileRouteTypes {
     | '/monetization'
     | '/notifications'
     | '/settings'
+    | '/support'
     | '/users'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -158,6 +178,7 @@ export interface FileRouteTypes {
     | '/chats'
     | '/islamic'
     | '/live'
+    | '/login'
     | '/logs'
     | '/matches'
     | '/messaging'
@@ -165,6 +186,7 @@ export interface FileRouteTypes {
     | '/monetization'
     | '/notifications'
     | '/settings'
+    | '/support'
     | '/users'
   id:
     | '__root__'
@@ -173,6 +195,7 @@ export interface FileRouteTypes {
     | '/chats'
     | '/islamic'
     | '/live'
+    | '/login'
     | '/logs'
     | '/matches'
     | '/messaging'
@@ -180,6 +203,7 @@ export interface FileRouteTypes {
     | '/monetization'
     | '/notifications'
     | '/settings'
+    | '/support'
     | '/users'
   fileRoutesById: FileRoutesById
 }
@@ -189,6 +213,7 @@ export interface RootRouteChildren {
   ChatsRoute: typeof ChatsRoute
   IslamicRoute: typeof IslamicRoute
   LiveRoute: typeof LiveRoute
+  LoginRoute: typeof LoginRoute
   LogsRoute: typeof LogsRoute
   MatchesRoute: typeof MatchesRoute
   MessagingRoute: typeof MessagingRoute
@@ -196,6 +221,7 @@ export interface RootRouteChildren {
   MonetizationRoute: typeof MonetizationRoute
   NotificationsRoute: typeof NotificationsRoute
   SettingsRoute: typeof SettingsRoute
+  SupportRoute: typeof SupportRoute
   UsersRoute: typeof UsersRoute
 }
 
@@ -206,6 +232,13 @@ declare module '@tanstack/react-router' {
       path: '/users'
       fullPath: '/users'
       preLoaderRoute: typeof UsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/support': {
+      id: '/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof SupportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -257,6 +290,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LogsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/live': {
       id: '/live'
       path: '/live'
@@ -301,6 +341,7 @@ const rootRouteChildren: RootRouteChildren = {
   ChatsRoute: ChatsRoute,
   IslamicRoute: IslamicRoute,
   LiveRoute: LiveRoute,
+  LoginRoute: LoginRoute,
   LogsRoute: LogsRoute,
   MatchesRoute: MatchesRoute,
   MessagingRoute: MessagingRoute,
@@ -308,8 +349,18 @@ const rootRouteChildren: RootRouteChildren = {
   MonetizationRoute: MonetizationRoute,
   NotificationsRoute: NotificationsRoute,
   SettingsRoute: SettingsRoute,
+  SupportRoute: SupportRoute,
   UsersRoute: UsersRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}

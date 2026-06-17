@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { AdminLayout, PageHeader } from "@/components/admin/layout";
@@ -7,7 +7,10 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useSettings, useSettingsMutation, useMe, useUpdateMe } from "@/lib/admin-hooks";
 
 export const Route = createFileRoute("/settings")({ component: SettingsPage });
 
@@ -32,10 +35,65 @@ const initialGuidelines =
   "Treat every member with respect, honor Islamic values in your conversations, and never share contact details outside the app until trust is established with a guardian's awareness.";
 
 function SettingsPage() {
+  const { data: stored } = useSettings();
+  const settingsMut = useSettingsMutation();
+  const { data: me } = useMe();
+  const updateMe = useUpdateMe();
   const [features, setFeatures] = useState(initialFeatures);
   const [weights, setWeights] = useState(initialWeights);
   const [guidelines, setGuidelines] = useState(initialGuidelines);
   const [saving, setSaving] = useState(false);
+
+  // Account/profile form for the logged-in admin.
+  const [profile, setProfile] = useState({ name: "", email: "", password: "" });
+  const [savingProfile, setSavingProfile] = useState(false);
+  useEffect(() => {
+    if (me) setProfile({ name: me.name ?? "", email: me.email ?? "", password: "" });
+  }, [me]);
+
+  function saveProfile() {
+    if (!profile.name.trim()) return toast.error("Name can't be empty");
+    if (!/^\S+@\S+\.\S+$/.test(profile.email)) return toast.error("Enter a valid email");
+    if (profile.password && profile.password.length < 6)
+      return toast.error("Password must be at least 6 characters");
+    setSavingProfile(true);
+    updateMe.mutate(
+      {
+        name: profile.name.trim(),
+        email: profile.email.trim(),
+        ...(profile.password ? { password: profile.password } : {}),
+      },
+      {
+        onSuccess: () => {
+          toast.success("Profile updated");
+          setProfile((p) => ({ ...p, password: "" }));
+          setSavingProfile(false);
+        },
+        onError: (e) => {
+          toast.error(e instanceof Error ? e.message : "Failed to update profile");
+          setSavingProfile(false);
+        },
+      },
+    );
+  }
+
+  // Hydrate from the stored AppSettings once they load.
+  useEffect(() => {
+    if (!stored) return;
+    if (Array.isArray(stored.features)) {
+      setFeatures(initialFeatures.map((f) => {
+        const s = (stored.features as any[]).find((x) => x.id === f.id);
+        return s ? { ...f, on: !!s.on } : f;
+      }));
+    }
+    if (Array.isArray(stored.matchingWeights)) {
+      setWeights(initialWeights.map((w) => {
+        const s = (stored.matchingWeights as any[]).find((x) => x.id === w.id);
+        return s ? { ...w, value: Number(s.value) } : w;
+      }));
+    }
+    if (typeof stored.guidelines === "string") setGuidelines(stored.guidelines);
+  }, [stored]);
 
   function toggleFeature(id: string, on: boolean) {
     setFeatures((prev) => prev.map((f) => (f.id === id ? { ...f, on } : f)));
@@ -49,15 +107,58 @@ function SettingsPage() {
 
   function handleSave() {
     setSaving(true);
-    setTimeout(() => {
-      toast.success("Settings saved");
-      setSaving(false);
-    }, 500);
+    settingsMut.mutate(
+      {
+        features: features.map((f) => ({ id: f.id, on: f.on })),
+        matchingWeights: weights.map((w) => ({ id: w.id, value: w.value })),
+        guidelines,
+      },
+      {
+        onSuccess: () => {
+          toast.success("Settings saved");
+          setSaving(false);
+        },
+        onError: (e) => {
+          toast.error(e instanceof Error ? e.message : "Failed to save");
+          setSaving(false);
+        },
+      },
+    );
   }
 
   return (
     <AdminLayout>
-      <PageHeader title="App Settings" description="Configure platform-wide features and matching behavior." />
+      <PageHeader title="Profile & Settings" description="Manage your admin account and configure platform-wide behavior." />
+
+      <Card className="p-5 shadow-elegant mb-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold">My account</h3>
+          <Badge variant="secondary" className="capitalize">{me?.role ?? "admin"}</Badge>
+        </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="acct-name">Full name</Label>
+            <Input id="acct-name" value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="acct-email">Email</Label>
+            <Input id="acct-email" type="email" value={profile.email} onChange={(e) => setProfile({ ...profile, email: e.target.value })} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="acct-pass">New password</Label>
+            <Input id="acct-pass" type="password" placeholder="Leave blank to keep current" value={profile.password} onChange={(e) => setProfile({ ...profile, password: e.target.value })} />
+          </div>
+        </div>
+        <div className="flex justify-end mt-4">
+          <Button
+            disabled={savingProfile || !me}
+            onClick={saveProfile}
+            className="bg-gradient-primary text-primary-foreground border-0 shadow-elegant"
+          >
+            {savingProfile ? "Saving…" : "Update profile"}
+          </Button>
+        </div>
+      </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="p-5 shadow-elegant">

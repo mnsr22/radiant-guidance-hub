@@ -4,44 +4,48 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 import { AdminLayout, PageHeader } from "@/components/admin/layout";
 import { StatCard } from "@/components/admin/stat-card";
 import { Card } from "@/components/ui/card";
-import { userGrowth } from "@/lib/mock-data";
+import { useMatches, useMatchStats, useMatchGrowth } from "@/lib/admin-hooks";
 
 export const Route = createFileRoute("/matches")({ component: Matches });
 
-const funnel = [
-  { stage: "Profile views", value: 100, count: "248,420" },
-  { stage: "Likes sent", value: 62, count: "153,820" },
-  { stage: "Mutual likes (matches)", value: 28, count: "69,580" },
-  { stage: "Conversations started", value: 19, count: "47,120" },
-  { stage: "Lasting connections", value: 7, count: "17,340" },
-];
-
-const recentMatches = [
-  { id: "m1", a: "Aisha Hassan", b: "Yusuf Khan", compat: 94, region: "London", status: "Chatting" },
-  { id: "m2", a: "Maryam Iqbal", b: "Ibrahim Ali", compat: 91, region: "Dubai", status: "Wali notified" },
-  { id: "m3", a: "Layla Rahman", b: "Khalid Malik", compat: 88, region: "Toronto", status: "Chatting" },
-  { id: "m4", a: "Hafsa Siddiqui", b: "Omar Ahmed", compat: 86, region: "Istanbul", status: "New" },
-  { id: "m5", a: "Nour Ahmed", b: "Bilal Qureshi", compat: 83, region: "Kuala Lumpur", status: "Chatting" },
-  { id: "m6", a: "Zainab Farooqi", b: "Hamza Hassan", compat: 79, region: "Karachi", status: "New" },
-];
-
 function Matches() {
+  const { data: matchesData } = useMatches();
+  const { data: matchStats } = useMatchStats();
+  const { data: growth } = useMatchGrowth();
+
+  const growthData = ((growth ?? []) as any[]).map((g) => ({ month: g.month, active: g.count }));
+
+  const rawFunnel = (matchStats?.funnel ?? []) as { stage: string; count: number }[];
+  const funnelTop = rawFunnel[0]?.count || 1;
+  const funnel = rawFunnel.map((s) => ({
+    stage: s.stage,
+    value: Math.round((s.count / funnelTop) * 100),
+    count: s.count.toLocaleString(),
+  }));
+
+  const recentMatches = ((matchesData?.results ?? []) as any[]).map((m) => ({
+    id: m.id,
+    a: m.participants?.[0] ?? "—",
+    b: m.participants?.[1] ?? "—",
+    when: m.createdAt ? new Date(m.createdAt).toLocaleDateString() : "—",
+  }));
+
   return (
     <AdminLayout>
       <PageHeader title="Match & Engagement Analytics" description="Where users connect — and where they drop off." />
 
       <div className="grid gap-4 md:grid-cols-4 mb-6">
-        <StatCard label="Total matches" value="124,820" delta={{ value: "+8.4%", positive: true }} icon={Heart} accent="primary" />
-        <StatCard label="Match success rate" value="28.4%" delta={{ value: "+1.2%", positive: true }} icon={TrendingUp} accent="success" />
-        <StatCard label="Engagement rate" value="64%" delta={{ value: "+3.1%", positive: true }} icon={Sparkles} accent="primary" />
-        <StatCard label="Drop-off (D7)" value="22%" delta={{ value: "-2.4%", positive: true }} icon={UserMinus} accent="warning" />
+        <StatCard label="Total matches" value={(matchStats?.total ?? matchesData?.total ?? 0).toLocaleString()} icon={Heart} accent="primary" />
+        <StatCard label="Match success rate" value={`${matchStats?.successRate ?? 0}%`} icon={TrendingUp} accent="success" />
+        <StatCard label="Engagement rate" value={`${matchStats?.engagementRate ?? 0}%`} icon={Sparkles} accent="primary" />
+        <StatCard label="Conversations" value={(matchStats?.funnel?.[2]?.count ?? 0).toLocaleString()} icon={UserMinus} accent="warning" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2 p-5 shadow-elegant">
           <h3 className="font-semibold mb-4">Matches over time</h3>
           <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={userGrowth}>
+            <AreaChart data={growthData}>
               <defs>
                 <linearGradient id="m1" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.6} />
@@ -60,6 +64,9 @@ function Matches() {
         <Card className="p-5 shadow-elegant">
           <h3 className="font-semibold mb-4">Engagement funnel</h3>
           <div className="space-y-4">
+            {funnel.length === 0 && (
+              <div className="p-6 text-center text-sm text-muted-foreground">No data yet.</div>
+            )}
             {funnel.map((s) => (
               <div key={s.stage}>
                 <div className="flex items-center justify-between text-xs mb-1.5">
@@ -80,20 +87,16 @@ function Matches() {
           <MessageCircle className="h-4 w-4 text-primary" /> Recent successful matches
         </h3>
         <div className="space-y-2">
+          {recentMatches.length === 0 && (
+            <div className="p-8 text-center text-sm text-muted-foreground">No matches yet.</div>
+          )}
           {recentMatches.map((m) => (
             <div key={m.id} className="flex items-center gap-3 p-3 rounded-lg border">
               <Heart className="h-4 w-4 text-warning shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium truncate">{m.a} ↔ {m.b}</div>
-                <div className="text-xs text-muted-foreground">{m.region}</div>
               </div>
-              <div className="hidden sm:flex items-center gap-2 w-32">
-                <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
-                  <div className="h-full bg-gradient-primary" style={{ width: `${m.compat}%` }} />
-                </div>
-                <span className="text-xs tabular-nums text-muted-foreground">{m.compat}%</span>
-              </div>
-              <span className="text-xs text-muted-foreground w-24 text-right">{m.status}</span>
+              <span className="text-xs text-muted-foreground w-28 text-right">{m.when}</span>
             </div>
           ))}
         </div>

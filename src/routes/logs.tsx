@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { mockLogs } from "@/lib/mock-data";
+import { useLogs } from "@/lib/admin-hooks";
 import { downloadCSV } from "@/lib/csv";
 
 export const Route = createFileRoute("/logs")({ component: LogsPage });
@@ -16,12 +16,14 @@ export const Route = createFileRoute("/logs")({ component: LogsPage });
 function LogsPage() {
   const [q, setQ] = useState("");
   const [admin, setAdmin] = useState("all");
-  const admins = useMemo(() => Array.from(new Set(mockLogs.map((l) => l.admin))), []);
-  const filtered = useMemo(() => mockLogs.filter((l) => {
+  const { data } = useLogs();
+  const logs = data ?? [];
+  const admins = useMemo(() => Array.from(new Set(logs.map((l) => l.admin))), [logs]);
+  const filtered = useMemo(() => logs.filter((l) => {
     if (admin !== "all" && l.admin !== admin) return false;
     if (q && !`${l.action} ${l.target} ${l.admin}`.toLowerCase().includes(q.toLowerCase())) return false;
     return true;
-  }), [q, admin]);
+  }), [logs, q, admin]);
 
   function handleExport() {
     downloadCSV("noor-audit-logs", filtered, ["id", "admin", "action", "target", "timestamp"]);
@@ -32,7 +34,7 @@ function LogsPage() {
     <AdminLayout>
       <PageHeader
         title="Audit Logs"
-        description={`${filtered.length} of ${mockLogs.length} actions recorded`}
+        description={`${filtered.length} of ${logs.length} actions recorded`}
         actions={
           <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="h-4 w-4 mr-2" /> Export

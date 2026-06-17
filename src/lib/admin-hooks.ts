@@ -1,0 +1,264 @@
+// Stable hook names over the RTK Query (Redux) admin API. Components import
+// from here; the Redux store/cache is in src/store. Each "*Mutations" hook
+// returns objects with a react-query-like `.mutate(arg, { onSuccess, onError })`
+// so route code stays uniform.
+import type { MockUser } from "./mock-data";
+import type { GetUsersArgs } from "@/store/admin-api";
+import {
+  useGetUsersQuery,
+  useCreateUserMutation,
+  useGetMeQuery,
+  useUpdateMeMutation,
+  useSetUserStatusMutation,
+  useVerifyUserMutation,
+  useSendUserMessageMutation,
+  useGetReportsQuery,
+  useResolveReportMutation,
+  useBanReportMutation,
+  useSendBulkMessageMutation,
+  useBroadcastMutation,
+  useGetNotificationHistoryQuery,
+  useGetAudienceCountsQuery,
+  useGetInboxThreadsQuery,
+  useGetInboxThreadQuery,
+  useSendInboxMessageMutation,
+  useGetAdsQuery,
+  useCreateAdMutation,
+  useUpdateAdMutation,
+  useDeleteAdMutation,
+  useGetPlansQuery,
+  useUpdatePlanMutation,
+  useGetIslamicSettingsQuery,
+  useUpdateIslamicSettingsMutation,
+  useGetStatsQuery,
+  useGetGrowthQuery,
+  useGetGenderRatioQuery,
+  useGetPracticeQuery,
+  useGetWeeklyActivityQuery,
+  useGetBillingStatsQuery,
+  useGetBillingRevenueQuery,
+  useGetTransactionsQuery,
+  useGetMatchStatsQuery,
+  useGetMatchGrowthQuery,
+  useGetLogsQuery,
+  useGetSettingsQuery,
+  usePatchSettingsMutation,
+  useGetConversationsQuery,
+  useGetConversationMessagesQuery,
+  useDeleteConversationMutation,
+  useGetMatchesQuery,
+  useGetLiveQuery,
+} from "@/store/admin-api";
+
+type MutOpts = { onSuccess?: () => void; onError?: (e: unknown) => void };
+
+/// Adapt an RTK mutation trigger to a `.mutate(arg, opts)` / `.mutateAsync(arg)` API.
+function wrap<T>(trigger: (arg: T) => { unwrap: () => Promise<unknown> }) {
+  return {
+    mutate: (arg: T, opts?: MutOpts) => {
+      trigger(arg)
+        .unwrap()
+        .then(() => opts?.onSuccess?.())
+        .catch((e) => opts?.onError?.(e));
+    },
+    mutateAsync: (arg: T) => trigger(arg).unwrap(),
+  };
+}
+
+// ── Users ──────────────────────────────────────────────────────
+export function useUsers(args?: GetUsersArgs) {
+  const { data, isLoading, isFetching } = useGetUsersQuery(args ?? {});
+  return { data, isLoading, isFetching };
+}
+export function useUserMutations() {
+  const [setStatus] = useSetUserStatusMutation();
+  const [verify] = useVerifyUserMutation();
+  const [message] = useSendUserMessageMutation();
+  const [create] = useCreateUserMutation();
+  return {
+    setStatus: wrap<{ id: string; status: MockUser["status"] }>(setStatus),
+    verify: wrap<{ id: string; verified: boolean }>(verify),
+    message: wrap<{ id: string; subject?: string; body: string }>(message),
+    create: wrap<{ name: string; email: string; password: string; role?: "user" | "admin"; status?: string }>(create),
+  };
+}
+
+// ── Current admin (account) ────────────────────────────────────
+export function useMe() {
+  const { data, isLoading } = useGetMeQuery();
+  return { data, isLoading };
+}
+export function useUpdateMe() {
+  const [update] = useUpdateMeMutation();
+  return wrap<{ name?: string; email?: string; password?: string }>(update);
+}
+
+// ── Reports / moderation ───────────────────────────────────────
+export function useReports(status?: string) {
+  const { data, isLoading } = useGetReportsQuery(status);
+  return { data, isLoading };
+}
+export function useReportMutations() {
+  const [resolve] = useResolveReportMutation();
+  const [ban] = useBanReportMutation();
+  return {
+    resolve: wrap<{ id: string; status: "reviewed" | "resolved" | "dismissed"; note?: string }>(resolve),
+    ban: wrap<string>(ban),
+  };
+}
+
+// ── Messaging / broadcast ──────────────────────────────────────
+export function useMessaging() {
+  const [sendBulk] = useSendBulkMessageMutation();
+  const [broadcast] = useBroadcastMutation();
+  return {
+    sendBulk: wrap<{ userIds?: string[]; audience?: string; subject?: string; body: string }>(sendBulk),
+    broadcast: wrap<{ title: string; message: string; audience?: string }>(broadcast),
+  };
+}
+
+export function useNotificationHistory() {
+  const { data, isLoading } = useGetNotificationHistoryQuery();
+  return { data, isLoading };
+}
+export function useAudienceCounts() {
+  const { data, isLoading } = useGetAudienceCountsQuery();
+  return { data, isLoading };
+}
+
+// ── Admin ↔ user inbox (support chat) ──────────────────────────
+export function useInboxThreads() {
+  const { data, isLoading } = useGetInboxThreadsQuery(undefined, { pollingInterval: 15000 });
+  return { data, isLoading };
+}
+export function useInboxThread(userId: string | null) {
+  const { data, isLoading, isFetching } = useGetInboxThreadQuery(userId ?? "", {
+    skip: !userId,
+    pollingInterval: 8000,
+  });
+  return { data, isLoading, isFetching };
+}
+export function useInboxSend() {
+  const [send] = useSendInboxMessageMutation();
+  return wrap<{ userId: string; body: string; subject?: string }>(send);
+}
+
+// ── Ads ────────────────────────────────────────────────────────
+export function useAds() {
+  const { data, isLoading } = useGetAdsQuery();
+  return { data, isLoading };
+}
+export function useAdMutations() {
+  const [create] = useCreateAdMutation();
+  const [update] = useUpdateAdMutation();
+  const [remove] = useDeleteAdMutation();
+  return {
+    create: wrap<any>(create),
+    update: wrap<{ id: string; body: any }>(update),
+    remove: wrap<string>(remove),
+  };
+}
+
+// ── Plans ──────────────────────────────────────────────────────
+export function usePlans() {
+  const { data, isLoading } = useGetPlansQuery();
+  return { data, isLoading };
+}
+export function usePlanMutations() {
+  const [update] = useUpdatePlanMutation();
+  return { update: wrap<{ id: string; body: any }>(update) };
+}
+
+// ── Islamic settings ───────────────────────────────────────────
+export function useIslamicSettings() {
+  const { data, isLoading } = useGetIslamicSettingsQuery();
+  return { data, isLoading };
+}
+export function useIslamicMutation() {
+  const [update] = useUpdateIslamicSettingsMutation();
+  return wrap<any>(update);
+}
+
+// ── Stats + analytics ──────────────────────────────────────────
+export function useStats() {
+  const { data, isLoading } = useGetStatsQuery();
+  return { data, isLoading };
+}
+export function useGrowth() {
+  const { data, isLoading } = useGetGrowthQuery();
+  return { data, isLoading };
+}
+export function useGenderRatio() {
+  const { data, isLoading } = useGetGenderRatioQuery();
+  return { data, isLoading };
+}
+export function usePractice() {
+  const { data, isLoading } = useGetPracticeQuery();
+  return { data, isLoading };
+}
+export function useWeeklyActivity() {
+  const { data, isLoading } = useGetWeeklyActivityQuery();
+  return { data, isLoading };
+}
+
+// ── Billing analytics ──────────────────────────────────────────
+export function useBillingStats() {
+  const { data, isLoading } = useGetBillingStatsQuery();
+  return { data, isLoading };
+}
+export function useBillingRevenue() {
+  const { data, isLoading } = useGetBillingRevenueQuery();
+  return { data, isLoading };
+}
+export function useTransactions() {
+  const { data, isLoading } = useGetTransactionsQuery();
+  return { data, isLoading };
+}
+
+// ── Match analytics ────────────────────────────────────────────
+export function useMatchStats() {
+  const { data, isLoading } = useGetMatchStatsQuery();
+  return { data, isLoading };
+}
+export function useMatchGrowth() {
+  const { data, isLoading } = useGetMatchGrowthQuery();
+  return { data, isLoading };
+}
+
+// ── Logs ───────────────────────────────────────────────────────
+export function useLogs() {
+  const { data, isLoading } = useGetLogsQuery();
+  return { data, isLoading };
+}
+
+// ── Settings ───────────────────────────────────────────────────
+export function useSettings() {
+  const { data, isLoading } = useGetSettingsQuery();
+  return { data, isLoading };
+}
+export function useSettingsMutation() {
+  const [patch] = usePatchSettingsMutation();
+  return wrap<Record<string, unknown>>(patch);
+}
+
+// ── Conversations / matches / live ─────────────────────────────
+export function useConversations(flagged = false) {
+  const { data, isLoading } = useGetConversationsQuery(flagged);
+  return { data, isLoading };
+}
+export function useConversationMessages(id: string | null) {
+  const { data, isLoading } = useGetConversationMessagesQuery(id ?? "", { skip: !id });
+  return { data, isLoading };
+}
+export function useDeleteConversation() {
+  const [del] = useDeleteConversationMutation();
+  return wrap<string>(del);
+}
+export function useMatches() {
+  const { data, isLoading } = useGetMatchesQuery();
+  return { data, isLoading };
+}
+export function useLive() {
+  const { data, isLoading } = useGetLiveQuery(undefined, { pollingInterval: 15000 });
+  return { data, isLoading };
+}

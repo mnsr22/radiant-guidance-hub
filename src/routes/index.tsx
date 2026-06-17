@@ -11,14 +11,38 @@ import { StatCard } from "@/components/admin/stat-card";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { activityLevels, genderRatio, religiousPractice, userGrowth, mockReports } from "@/lib/mock-data";
+import { useStats, useGrowth, useGenderRatio, usePractice, useReports, useWeeklyActivity } from "@/lib/admin-hooks";
 
 export const Route = createFileRoute("/")({
   component: Overview,
 });
 
+const PIE = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)"];
+function toPercent(rows: { label: string; value: number }[]) {
+  const total = rows.reduce((s, r) => s + r.value, 0) || 1;
+  return rows.map((r, i) => ({
+    name: r.label,
+    value: Math.round((r.value / total) * 100),
+    fill: PIE[i % PIE.length],
+  }));
+}
+
 function Overview() {
   const navigate = useNavigate();
+  const { data: stats } = useStats();
+  const { data: growth } = useGrowth();
+  const { data: gender } = useGenderRatio();
+  const { data: practice } = usePractice();
+  const { data: reports } = useReports();
+  const { data: weekly } = useWeeklyActivity();
+  const activityLevels = (weekly ?? []) as { day: string; messages: number; matches: number }[];
+
+  const growthData = (growth ?? []).map((g: any) => ({ month: g.month, users: g.count, active: g.count }));
+  const genderData = toPercent((gender ?? []) as { label: string; value: number }[]);
+  const practiceData = toPercent((practice ?? []) as { label: string; value: number }[]);
+  const recentReports = reports ?? [];
+  const newSignups = growth && growth.length ? (growth as any)[growth.length - 1].count : 0;
+
   return (
     <AdminLayout>
       <PageHeader
@@ -30,7 +54,7 @@ function Overview() {
               variant="outline"
               size="sm"
               onClick={() => {
-                downloadCSV("noor-overview", userGrowth);
+                downloadCSV("noor-overview", growthData);
                 toast.success("Overview exported to CSV");
               }}
             >
@@ -48,10 +72,10 @@ function Overview() {
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Total Users" value="15,240" delta={{ value: "+12.4%", positive: true }} icon={Users} accent="primary" />
-        <StatCard label="Active Today" value="3,820" delta={{ value: "+5.8%", positive: true }} icon={Activity} accent="success" />
-        <StatCard label="New Signups" value="284" delta={{ value: "+18%", positive: true }} icon={UserPlus} accent="primary" />
-        <StatCard label="Matches Created" value="1,124" delta={{ value: "-2.1%", positive: false }} icon={Heart} accent="warning" />
+        <StatCard label="Total Users" value={(stats?.totalUsers ?? 0).toLocaleString()} icon={Users} accent="primary" />
+        <StatCard label="Online Now" value={(stats?.onlineNow ?? 0).toLocaleString()} icon={Activity} accent="success" />
+        <StatCard label="New Signups (mo)" value={Number(newSignups).toLocaleString()} icon={UserPlus} accent="primary" />
+        <StatCard label="Matches Created" value={(stats?.totalMatches ?? 0).toLocaleString()} icon={Heart} accent="warning" />
       </div>
 
       <div className="grid gap-4 mt-6 lg:grid-cols-3">
@@ -61,10 +85,12 @@ function Overview() {
               <h3 className="font-semibold">User Growth</h3>
               <p className="text-xs text-muted-foreground">Monthly total vs active users</p>
             </div>
-            <Badge variant="secondary" className="bg-primary/10 text-primary">+248% YoY</Badge>
+            <Badge variant="secondary" className="bg-primary/10 text-primary">
+              {(stats?.usersYoyPercent ?? 0) >= 0 ? "+" : ""}{stats?.usersYoyPercent ?? 0}% YoY
+            </Badge>
           </div>
           <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={userGrowth}>
+            <AreaChart data={growthData}>
               <defs>
                 <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.5} />
@@ -90,14 +116,14 @@ function Overview() {
           <p className="text-xs text-muted-foreground mb-4">Active members</p>
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
-              <Pie data={genderRatio} dataKey="value" innerRadius={55} outerRadius={85} paddingAngle={4}>
-                {genderRatio.map((e, i) => <Cell key={i} fill={e.fill} />)}
+              <Pie data={genderData} dataKey="value" innerRadius={55} outerRadius={85} paddingAngle={4}>
+                {genderData.map((e, i) => <Cell key={i} fill={e.fill} />)}
               </Pie>
               <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 12 }} />
             </PieChart>
           </ResponsiveContainer>
           <div className="flex justify-center gap-4 mt-2">
-            {genderRatio.map((g) => (
+            {genderData.map((g) => (
               <div key={g.name} className="flex items-center gap-2 text-xs">
                 <span className="h-2.5 w-2.5 rounded-full" style={{ background: g.fill }} />
                 <span className="text-muted-foreground">{g.name}</span>
@@ -133,7 +159,7 @@ function Overview() {
           <h3 className="font-semibold mb-1">Religious Practice</h3>
           <p className="text-xs text-muted-foreground mb-4">User self-identification</p>
           <div className="space-y-3">
-            {religiousPractice.map((r) => (
+            {practiceData.map((r) => (
               <div key={r.name}>
                 <div className="flex items-center justify-between text-xs mb-1">
                   <span className="font-medium">{r.name}</span>
@@ -160,7 +186,7 @@ function Overview() {
           <Button variant="ghost" size="sm" onClick={() => navigate({ to: "/moderation" })}>View all</Button>
         </div>
         <div className="divide-y -mx-2">
-          {mockReports.slice(0, 5).map((r) => (
+          {recentReports.slice(0, 5).map((r) => (
             <div key={r.id} className="flex items-center gap-4 px-2 py-3">
               <div className={`h-2 w-2 rounded-full ${r.severity === "high" ? "bg-destructive" : r.severity === "medium" ? "bg-warning" : "bg-success"}`} />
               <div className="flex-1 min-w-0">
