@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Megaphone, Upload, Trash2, Eye, Plus } from "lucide-react";
+import { Megaphone, Upload, Trash2, Eye, Plus, Pencil, X } from "lucide-react";
 import { toast } from "sonner";
 import { AdminLayout, PageHeader } from "@/components/admin/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,9 +14,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { useAds, useAdMutations } from "@/lib/admin-hooks";
+import { SOCKET_URL } from "@/lib/api";
 
 export const Route = createFileRoute("/ads")({ component: AdsPage });
 
@@ -69,11 +70,20 @@ const audienceLabel: Record<Ad["audience"], string> = {
   new: "New signups",
 };
 
+// Stored images come back as `/uploads/...` paths served by the backend origin.
+// SOCKET_URL is the API base minus the `/api` prefix — i.e. the server origin —
+// so it always matches whatever backend the app is actually talking to.
+// data: previews and absolute URLs pass through unchanged.
+const resolveImg = (u: string) =>
+  !u || u.startsWith("http") || u.startsWith("data:") ? u : `${SOCKET_URL}${u}`;
+
 function AdsPage() {
   const { data: rawAds } = useAds();
   const ads = (rawAds ?? []).map(mapApiAd);
   const adMut = useAdMutations();
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Ad | null>(null);
+  const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState<Ad | null>(null);
 
   const [title, setTitle] = useState("");
@@ -82,52 +92,111 @@ function AdsPage() {
   const [ctaUrl, setCtaUrl] = useState("");
   const [placement, setPlacement] = useState<Ad["placement"]>("home_banner");
   const [audience, setAudience] = useState<Ad["audience"]>("all");
-  const [imageUrl, setImageUrl] = useState("");
+  // One ad per image: creating supports many, editing keeps a single image.
+  const [images, setImages] = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
   function reset() {
     setTitle(""); setDescription(""); setCtaLabel("Learn more");
-    setCtaUrl(""); setPlacement("home_banner"); setAudience("all"); setImageUrl("");
+    setCtaUrl(""); setPlacement("home_banner"); setAudience("all"); setImages([]);
+    setEditing(null);
     if (fileRef.current) fileRef.current.value = "";
   }
 
-  function onFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image must be under 5MB");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => setImageUrl(String(reader.result));
-    reader.readAsDataURL(file);
+  function openCreate() {
+    reset();
+    setOpen(true);
   }
 
-  function publish() {
-    if (!title.trim() || !imageUrl) {
-      toast.error("Add a title and image");
+  function openEdit(ad: Ad) {
+    setEditing(ad);
+    setTitle(ad.title);
+    setDescription(ad.description);
+    setCtaLabel(ad.ctaLabel || "Learn more");
+    setCtaUrl(ad.ctaUrl);
+    setPlacement(ad.placement);
+    setAudience(ad.audience);
+    setImages(ad.imageUrl ? [ad.imageUrl] : []);
+    if (fileRef.current) fileRef.current.value = "";
+    setOpen(true);
+  }
+
+  function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+    const oversized = files.filter((f) => f.size > 5 * 1024 * 1024);
+    if (oversized.length) {
+      toast.error("Each image must be under 5MB");
+    }
+    const valid = files.filter((f) => f.size <= 5 * 1024 * 1024);
+    Promise.all(
+      valid.map(
+        (file) =>
+          new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result));
+            reader.readAsDataURL(file);
+          }),
+      ),
+    ).then((dataUrls) => {
+      // Editing replaces the single image; creating appends to the batch.
+      setImages((prev) => (editing ? dataUrls.slice(0, 1) : [...prev, ...dataUrls]));
+    });
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
+  function removeImage(idx: number) {
+    setImages((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  async function publish() {
+    if (!title.trim()) {
+      toast.error("Add a title");
       return;
     }
-    adMut.create.mutate(
-      {
-        title: title.trim(),
-        body: description.trim() || undefined,
-        ctaText: ctaLabel.trim() || "Learn more",
-        targetUrl: ctaUrl.trim() || undefined,
-        imageUrl,
-        placement: placementToApi(placement),
-        audience: audienceToApi(audience),
-        isActive: true,
-      },
-      {
-        onSuccess: () => {
-          toast.success("Ad published to mobile app");
-          setOpen(false);
-          reset();
-        },
-        onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to publish"),
-      },
-    );
+    if (images.length === 0) {
+      toast.error("Add at least one image");
+      return;
+    }
+    const base = {
+      title: title.trim(),
+      body: description.trim() || undefined,
+      ctaText: ctaLabel.trim() || "Learn more",
+      targetUrl: ctaUrl.trim() || undefined,
+      placement: placementToApi(placement),
+      audience: audienceToApi(audience),
+    };
+    setBusy(true);
+    try {
+      if (editing) {
+        await adMut.update.mutateAsync({
+          id: editing.id,
+          body: { ...base, imageUrl: images[0] },
+        });
+        toast.success("Ad updated");
+      } else {
+        const multiple = images.length > 1;
+        await Promise.all(
+          images.map((imageUrl, i) =>
+            adMut.create.mutateAsync({
+              ...base,
+              title: multiple ? `${base.title} ${i + 1}` : base.title,
+              imageUrl,
+              isActive: true,
+            }),
+          ),
+        );
+        toast.success(
+          multiple ? `${images.length} ads published to mobile app` : "Ad published to mobile app",
+        );
+      }
+      setOpen(false);
+      reset();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to save");
+    } finally {
+      setBusy(false);
+    }
   }
 
   function toggle(ad: Ad) {
@@ -143,33 +212,51 @@ function AdsPage() {
         title="Ads & Promotions"
         description="Upload and manage ads shown across the mobile app."
         actions={
-          <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
-            <DialogTrigger asChild>
-              <Button className="bg-gradient-primary"><Plus className="h-4 w-4" /> New Ad</Button>
-            </DialogTrigger>
+          <Button className="bg-gradient-primary" onClick={openCreate}>
+            <Plus className="h-4 w-4" /> New Ad
+          </Button>
+        }
+      />
+
+      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Upload new ad</DialogTitle>
+                <DialogTitle>{editing ? "Edit ad" : "Upload new ads"}</DialogTitle>
               </DialogHeader>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="md:col-span-2 space-y-2">
-                  <Label>Banner image</Label>
+                  <Label>{editing ? "Banner image" : "Banner images"}</Label>
                   <div className="flex items-center gap-3">
                     <Button
                       type="button" variant="outline"
                       onClick={() => fileRef.current?.click()}
                     >
-                      <Upload className="h-4 w-4" /> Choose image
+                      <Upload className="h-4 w-4" /> {editing ? "Replace image" : "Choose images"}
                     </Button>
-                    <span className="text-xs text-muted-foreground">PNG/JPG, up to 5MB</span>
+                    <span className="text-xs text-muted-foreground">
+                      PNG/JPG, up to 5MB{editing ? "" : " each — one ad per image"}
+                    </span>
                     <input
                       ref={fileRef} type="file" accept="image/*"
+                      multiple={!editing}
                       className="hidden" onChange={onFile}
                     />
                   </div>
-                  {imageUrl && (
-                    <div className="overflow-hidden rounded-lg border">
-                      <img src={imageUrl} alt="preview" className="h-40 w-full object-cover" />
+                  {images.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2">
+                      {images.map((img, i) => (
+                        <div key={i} className="group relative overflow-hidden rounded-lg border">
+                          <img src={resolveImg(img)} alt={`preview ${i + 1}`} className="h-24 w-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(i)}
+                            className="absolute right-1 top-1 rounded-full bg-background/80 p-1 text-destructive opacity-0 shadow transition group-hover:opacity-100"
+                            aria-label="Remove image"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -213,13 +300,13 @@ function AdsPage() {
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                <Button onClick={publish} className="bg-gradient-primary">Publish</Button>
+                <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>Cancel</Button>
+                <Button onClick={publish} className="bg-gradient-primary" disabled={busy}>
+                  {busy ? "Saving…" : editing ? "Save changes" : images.length > 1 ? `Publish ${images.length} ads` : "Publish"}
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
-        }
-      />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {ads.length === 0 && (
@@ -233,7 +320,7 @@ function AdsPage() {
         {ads.map((ad) => (
           <Card key={ad.id} className="overflow-hidden">
             <div className="relative">
-              <img src={ad.imageUrl} alt={ad.title} className="h-40 w-full object-cover" />
+              <img src={resolveImg(ad.imageUrl)} alt={ad.title} className="h-40 w-full object-cover" />
               <Badge
                 className="absolute right-2 top-2"
                 variant={ad.active ? "default" : "secondary"}
@@ -260,6 +347,9 @@ function AdsPage() {
                   <Button size="icon" variant="ghost" onClick={() => setPreview(ad)}>
                     <Eye className="h-4 w-4" />
                   </Button>
+                  <Button size="icon" variant="ghost" onClick={() => openEdit(ad)}>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
                   <Button size="icon" variant="ghost" onClick={() => remove(ad.id)}>
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
@@ -276,7 +366,7 @@ function AdsPage() {
           {preview && (
             <div className="rounded-2xl border bg-background p-3 shadow-elegant">
               <div className="overflow-hidden rounded-xl">
-                <img src={preview.imageUrl} alt={preview.title} className="h-44 w-full object-cover" />
+                <img src={resolveImg(preview.imageUrl)} alt={preview.title} className="h-44 w-full object-cover" />
               </div>
               <div className="space-y-1 p-2">
                 <p className="font-semibold">{preview.title}</p>

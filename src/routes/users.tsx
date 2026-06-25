@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   Search, Filter, Download, MoreHorizontal, ShieldCheck, Crown, MapPin,
-  Send, Ban, ShieldOff, UserCheck, Eye, ChevronLeft, ChevronRight, Plus,
+  Send, Ban, ShieldOff, UserCheck, Eye, ChevronLeft, ChevronRight, Plus, Pencil, RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AdminLayout, PageHeader } from "@/components/admin/layout";
@@ -29,6 +29,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { type MockUser } from "@/lib/mock-data";
 import { useUsers, useUserMutations } from "@/lib/admin-hooks";
+import { toApiStatus } from "@/lib/mappers";
 import { downloadCSV } from "@/lib/csv";
 
 export const Route = createFileRoute("/users")({
@@ -72,8 +73,59 @@ function UsersPage() {
   const [viewUser, setViewUser] = useState<MockUser | null>(null);
   const [confirm, setConfirm] = useState<{ user: MockUser; action: "ban" | "unban" | "verify" } | null>(null);
   const [addOpen, setAddOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", email: "", password: "", role: "user", status: "active" });
+  const [form, setForm] = useState({ name: "", email: "", password: "", role: "user", status: "active", gender: "male" });
   const [creating, setCreating] = useState(false);
+
+  // ── Edit user (full details) ─────────────────────────────────
+  const editEmpty = { name: "", email: "", gender: "male", city: "", country: "", status: "active", password: "" };
+  const [editUser, setEditUser] = useState<MockUser | null>(null);
+  const [editForm, setEditForm] = useState(editEmpty);
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  function openEdit(u: MockUser) {
+    setEditUser(u);
+    setEditForm({
+      name: u.name,
+      email: u.email,
+      gender: u.gender === "Female" ? "female" : "male",
+      city: u.city === "—" ? "" : u.city,
+      country: u.country === "—" ? "" : u.country,
+      status: toApiStatus(u.status),
+      password: "",
+    });
+  }
+
+  function resetSwipes(u: MockUser) {
+    userMut.resetSwipes.mutate(u.id, {
+      onSuccess: () => toast.success(`${u.name}'s discovery deck reset`),
+      onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to reset deck"),
+    });
+  }
+
+  async function saveEdit() {
+    if (!editUser) return;
+    if (!editForm.name.trim()) return toast.error("Enter a name");
+    if (!/^\S+@\S+\.\S+$/.test(editForm.email)) return toast.error("Enter a valid email");
+    setSavingEdit(true);
+    try {
+      const body: Record<string, unknown> = {
+        name: editForm.name.trim(),
+        email: editForm.email.trim(),
+        gender: editForm.gender,
+        city: editForm.city.trim(),
+        country: editForm.country.trim(),
+        status: editForm.status,
+      };
+      if (editForm.password.trim()) body.password = editForm.password.trim();
+      await userMut.update.mutateAsync({ id: editUser.id, body });
+      toast.success(`${editForm.name} updated`);
+      setEditUser(null);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to update user");
+    } finally {
+      setSavingEdit(false);
+    }
+  }
 
   function handleExport() {
     downloadCSV("noor-users", users, [
@@ -84,7 +136,7 @@ function UsersPage() {
   }
 
   function resetForm() {
-    setForm({ name: "", email: "", password: "", role: "user", status: "active" });
+    setForm({ name: "", email: "", password: "", role: "user", status: "active", gender: "male" });
   }
 
   function handleCreate() {
@@ -99,6 +151,7 @@ function UsersPage() {
         password: form.password,
         role: form.role as "user" | "admin",
         status: form.status,
+        gender: form.gender as "male" | "female",
       },
       {
         onSuccess: () => {
@@ -258,6 +311,18 @@ function UsersPage() {
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">{u.lastActive}</TableCell>
                   <TableCell className="text-right">
+                    {/* Dev-only helper: repopulate this user's discovery deck. */}
+                    {import.meta.env.DEV && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mr-1 h-8"
+                        title="Clear this user's swipes so their discovery deck refills (dev only)"
+                        onClick={() => resetSwipes(u)}
+                      >
+                        <RotateCcw className="h-3.5 w-3.5 mr-1" /> Reset deck
+                      </Button>
+                    )}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -269,6 +334,9 @@ function UsersPage() {
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => setViewUser(u)}>
                           <Eye className="h-4 w-4 mr-2" /> View profile
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => openEdit(u)}>
+                          <Pencil className="h-4 w-4 mr-2" /> Edit details
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => navigate({ to: "/messaging" })}>
                           <Send className="h-4 w-4 mr-2" /> Send message
@@ -343,6 +411,74 @@ function UsersPage() {
           </div>
         </div>
       </Card>
+
+      {/* Edit user details dialog */}
+      <Dialog open={!!editUser} onOpenChange={(o) => !o && setEditUser(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit {editUser?.name}</DialogTitle>
+            <DialogDescription>Update this member's account and profile details.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Full name</Label>
+                <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Email</Label>
+                <Input type="email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1.5">
+                <Label>Gender</Label>
+                <Select value={editForm.gender} onValueChange={(v) => setEditForm({ ...editForm, gender: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="male">Male</SelectItem>
+                    <SelectItem value="female">Female</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>City</Label>
+                <Input value={editForm.city} onChange={(e) => setEditForm({ ...editForm, city: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Country</Label>
+                <Input value={editForm.country} onChange={(e) => setEditForm({ ...editForm, country: e.target.value })} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Status</Label>
+                <Select value={editForm.status} onValueChange={(v) => setEditForm({ ...editForm, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="suspended">Suspended</SelectItem>
+                    <SelectItem value="banned">Banned</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Reset password (optional)</Label>
+                <Input type="password" value={editForm.password}
+                  onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                  placeholder="Leave blank to keep" />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditUser(null)} disabled={savingEdit}>Cancel</Button>
+            <Button className="bg-gradient-primary" onClick={saveEdit} disabled={savingEdit}>
+              {savingEdit ? "Saving…" : "Save changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* View profile dialog */}
       <Dialog open={!!viewUser} onOpenChange={(o) => !o && setViewUser(null)}>
@@ -423,6 +559,16 @@ function UsersPage() {
                     <SelectItem value="pending">Pending</SelectItem>
                     <SelectItem value="suspended">Suspended</SelectItem>
                     <SelectItem value="banned">Banned</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Gender</Label>
+                <Select value={form.gender} onValueChange={(v) => setForm({ ...form, gender: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="male">Male</SelectItem>
+                    <SelectItem value="female">Female</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

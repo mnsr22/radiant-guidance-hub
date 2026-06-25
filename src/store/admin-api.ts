@@ -45,7 +45,7 @@ const baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> =
 export const adminApi = createApi({
   reducerPath: "adminApi",
   baseQuery,
-  tagTypes: ["Users", "Reports", "Ads", "Plans", "Islamic", "Logs", "Settings", "Conversations", "Me", "Broadcasts", "Inbox"],
+  tagTypes: ["Users", "Reports", "Ads", "Plans", "Subscriptions", "Islamic", "Logs", "Settings", "Conversations", "Me", "Broadcasts", "Inbox"],
   endpoints: (b) => ({
     // ── Users ──────────────────────────────────────────────
     getUsers: b.query<
@@ -73,10 +73,17 @@ export const adminApi = createApi({
     }),
     createUser: b.mutation<
       unknown,
-      { name: string; email: string; password: string; role?: "user" | "admin"; status?: string }
+      { name: string; email: string; password: string; role?: "user" | "admin"; status?: string; gender?: "male" | "female" }
     >({
       query: (body) => ({ url: "/admin/users", method: "POST", body }),
       invalidatesTags: ["Users"],
+    }),
+    updateUser: b.mutation<unknown, { id: string; body: Record<string, unknown> }>({
+      query: ({ id, body }) => ({ url: `/admin/users/${id}`, method: "PATCH", body }),
+      invalidatesTags: ["Users", "Subscriptions"],
+    }),
+    resetSwipes: b.mutation<{ id: string; cleared: number }, string>({
+      query: (id) => ({ url: `/admin/users/${id}/reset-swipes`, method: "POST" }),
     }),
     setUserStatus: b.mutation<unknown, { id: string; status: MockUser["status"] }>({
       query: ({ id, status }) => ({
@@ -179,14 +186,40 @@ export const adminApi = createApi({
       invalidatesTags: ["Ads"],
     }),
 
-    // ── Plans ──────────────────────────────────────────────
+    // ── Plans (subscription packages) ──────────────────────
     getPlans: b.query<any[], void>({
       query: () => "/admin/plans",
       providesTags: ["Plans"],
     }),
+    createPlan: b.mutation<unknown, Record<string, unknown>>({
+      query: (body) => ({ url: "/admin/plans", method: "POST", body }),
+      invalidatesTags: ["Plans"],
+    }),
     updatePlan: b.mutation<unknown, { id: string; body: any }>({
       query: ({ id, body }) => ({ url: `/admin/plans/${id}`, method: "PATCH", body }),
       invalidatesTags: ["Plans"],
+    }),
+    deletePlan: b.mutation<unknown, string>({
+      query: (id) => ({ url: `/admin/plans/${id}`, method: "DELETE" }),
+      invalidatesTags: ["Plans"],
+    }),
+
+    // ── Subscriptions ──────────────────────────────────────
+    getSubscriptions: b.query<any[], void>({
+      query: () => "/admin/subscriptions",
+      providesTags: ["Subscriptions"],
+    }),
+    attachSubscription: b.mutation<unknown, Record<string, unknown>>({
+      query: (body) => ({ url: "/admin/subscriptions", method: "POST", body }),
+      invalidatesTags: ["Subscriptions", "Users"],
+    }),
+    updateSubscription: b.mutation<unknown, { id: string; body: Record<string, unknown> }>({
+      query: ({ id, body }) => ({ url: `/admin/subscriptions/${id}`, method: "PATCH", body }),
+      invalidatesTags: ["Subscriptions", "Users"],
+    }),
+    deleteSubscription: b.mutation<unknown, string>({
+      query: (id) => ({ url: `/admin/subscriptions/${id}`, method: "DELETE" }),
+      invalidatesTags: ["Subscriptions", "Users"],
     }),
 
     // ── Islamic settings ───────────────────────────────────
@@ -266,6 +299,8 @@ export const adminApi = createApi({
 export const {
   useGetUsersQuery,
   useCreateUserMutation,
+  useUpdateUserMutation,
+  useResetSwipesMutation,
   useGetMeQuery,
   useUpdateMeMutation,
   useSetUserStatusMutation,
@@ -286,7 +321,13 @@ export const {
   useUpdateAdMutation,
   useDeleteAdMutation,
   useGetPlansQuery,
+  useCreatePlanMutation,
   useUpdatePlanMutation,
+  useDeletePlanMutation,
+  useGetSubscriptionsQuery,
+  useAttachSubscriptionMutation,
+  useUpdateSubscriptionMutation,
+  useDeleteSubscriptionMutation,
   useGetIslamicSettingsQuery,
   useUpdateIslamicSettingsMutation,
   useGetStatsQuery,

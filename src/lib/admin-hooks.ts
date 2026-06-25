@@ -7,6 +7,8 @@ import type { GetUsersArgs } from "@/store/admin-api";
 import {
   useGetUsersQuery,
   useCreateUserMutation,
+  useUpdateUserMutation,
+  useResetSwipesMutation,
   useGetMeQuery,
   useUpdateMeMutation,
   useSetUserStatusMutation,
@@ -27,7 +29,13 @@ import {
   useUpdateAdMutation,
   useDeleteAdMutation,
   useGetPlansQuery,
+  useCreatePlanMutation,
   useUpdatePlanMutation,
+  useDeletePlanMutation,
+  useGetSubscriptionsQuery,
+  useAttachSubscriptionMutation,
+  useUpdateSubscriptionMutation,
+  useDeleteSubscriptionMutation,
   useGetIslamicSettingsQuery,
   useUpdateIslamicSettingsMutation,
   useGetStatsQuery,
@@ -75,11 +83,15 @@ export function useUserMutations() {
   const [verify] = useVerifyUserMutation();
   const [message] = useSendUserMessageMutation();
   const [create] = useCreateUserMutation();
+  const [update] = useUpdateUserMutation();
+  const [resetSwipes] = useResetSwipesMutation();
   return {
     setStatus: wrap<{ id: string; status: MockUser["status"] }>(setStatus),
     verify: wrap<{ id: string; verified: boolean }>(verify),
     message: wrap<{ id: string; subject?: string; body: string }>(message),
-    create: wrap<{ name: string; email: string; password: string; role?: "user" | "admin"; status?: string }>(create),
+    create: wrap<{ name: string; email: string; password: string; role?: "user" | "admin"; status?: string; gender?: "male" | "female" }>(create),
+    update: wrap<{ id: string; body: Record<string, unknown> }>(update),
+    resetSwipes: wrap<string>(resetSwipes),
   };
 }
 
@@ -159,14 +171,36 @@ export function useAdMutations() {
   };
 }
 
-// ── Plans ──────────────────────────────────────────────────────
+// ── Plans (subscription packages) ──────────────────────────────
 export function usePlans() {
   const { data, isLoading } = useGetPlansQuery();
   return { data, isLoading };
 }
 export function usePlanMutations() {
+  const [create] = useCreatePlanMutation();
   const [update] = useUpdatePlanMutation();
-  return { update: wrap<{ id: string; body: any }>(update) };
+  const [remove] = useDeletePlanMutation();
+  return {
+    create: wrap<Record<string, unknown>>(create),
+    update: wrap<{ id: string; body: any }>(update),
+    remove: wrap<string>(remove),
+  };
+}
+
+// ── Subscriptions ──────────────────────────────────────────────
+export function useSubscriptions() {
+  const { data, isLoading, isFetching } = useGetSubscriptionsQuery();
+  return { data, isLoading, isFetching };
+}
+export function useSubscriptionMutations() {
+  const [attach] = useAttachSubscriptionMutation();
+  const [update] = useUpdateSubscriptionMutation();
+  const [remove] = useDeleteSubscriptionMutation();
+  return {
+    attach: wrap<Record<string, unknown>>(attach),
+    update: wrap<{ id: string; body: Record<string, unknown> }>(update),
+    remove: wrap<string>(remove),
+  };
 }
 
 // ── Islamic settings ───────────────────────────────────────────
