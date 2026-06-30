@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UsersRouteImport } from './routes/users'
+import { Route as TasbihRouteImport } from './routes/tasbih'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
 import { Route as SettingsRouteImport } from './routes/settings'
@@ -29,6 +30,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const UsersRoute = UsersRouteImport.update({
   id: '/users',
   path: '/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TasbihRoute = TasbihRouteImport.update({
+  id: '/tasbih',
+  path: '/tasbih',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SupportRoute = SupportRouteImport.update({
@@ -123,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/support': typeof SupportRoute
+  '/tasbih': typeof TasbihRoute
   '/users': typeof UsersRoute
 }
 export interface FileRoutesByTo {
@@ -141,6 +148,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/support': typeof SupportRoute
+  '/tasbih': typeof TasbihRoute
   '/users': typeof UsersRoute
 }
 export interface FileRoutesById {
@@ -160,6 +168,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/support': typeof SupportRoute
+  '/tasbih': typeof TasbihRoute
   '/users': typeof UsersRoute
 }
 export interface FileRouteTypes {
@@ -180,6 +189,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/subscriptions'
     | '/support'
+    | '/tasbih'
     | '/users'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -198,6 +208,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/subscriptions'
     | '/support'
+    | '/tasbih'
     | '/users'
   id:
     | '__root__'
@@ -216,6 +227,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/subscriptions'
     | '/support'
+    | '/tasbih'
     | '/users'
   fileRoutesById: FileRoutesById
 }
@@ -235,6 +247,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   SubscriptionsRoute: typeof SubscriptionsRoute
   SupportRoute: typeof SupportRoute
+  TasbihRoute: typeof TasbihRoute
   UsersRoute: typeof UsersRoute
 }
 
@@ -245,6 +258,13 @@ declare module '@tanstack/react-router' {
       path: '/users'
       fullPath: '/users'
       preLoaderRoute: typeof UsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tasbih': {
+      id: '/tasbih'
+      path: '/tasbih'
+      fullPath: '/tasbih'
+      preLoaderRoute: typeof TasbihRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/support': {
@@ -371,6 +391,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   SubscriptionsRoute: SubscriptionsRoute,
   SupportRoute: SupportRoute,
+  TasbihRoute: TasbihRoute,
   UsersRoute: UsersRoute,
 }
 export const routeTree = rootRouteImport
