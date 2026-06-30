@@ -1,7 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, MessageSquare, Shield, Activity, Heart,
-  Settings, Moon, Bell, CreditCard, FileText, Sparkles, ChevronLeft, Send, Megaphone, Inbox, Receipt,
+  Settings, Moon, Bell, CreditCard, FileText, Sparkles, ChevronLeft, Send, Megaphone, Inbox, Receipt, CircleDot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ export const adminNav = [
   { to: "/live", label: "Live Activity", icon: Activity },
   { to: "/matches", label: "Matches", icon: Heart },
   { to: "/islamic", label: "Islamic Features", icon: Moon },
+  { to: "/tasbih", label: "Tasbih & Streaks", icon: CircleDot },
   { to: "/notifications", label: "Notifications", icon: Bell },
   { to: "/ads", label: "Ads & Promotions", icon: Megaphone },
   { to: "/monetization", label: "Monetization", icon: CreditCard },
