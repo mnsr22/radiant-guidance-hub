@@ -22,7 +22,7 @@ import {
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 import { CircleDot, Flame, Trophy, Users, Plus, Download } from "lucide-react";
 import { toast } from "sonner";
-import { exportToCSV } from "@/lib/csv";
+import { downloadCSV } from "@/lib/csv";
 import { mockUsers } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/tasbih")({
@@ -88,7 +88,7 @@ function TasbihPage() {
   };
 
   const exportLeaderboard = () => {
-    exportToCSV(
+    downloadCSV(
       "tasbih-leaderboard.csv",
       topUsers.map((u) => ({
         name: u.name,
@@ -111,10 +111,10 @@ function TasbihPage() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard title="Active Streaks" value="8,420" icon={Flame} trend={{ value: 12.4, isPositive: true }} />
-          <StatCard title="Sessions Today" value="42,318" icon={CircleDot} trend={{ value: 8.1, isPositive: true }} />
-          <StatCard title="Badges Awarded" value="1,284" icon={Trophy} trend={{ value: 3.2, isPositive: true }} />
-          <StatCard title="Avg Daily Users" value="1,620" icon={Users} trend={{ value: 5.6, isPositive: true }} />
+          <StatCard label="Active Streaks" value="8,420" icon={Flame} delta={{ value: "+12.4%", positive: true }} />
+          <StatCard label="Sessions Today" value="42,318" icon={CircleDot} delta={{ value: "+8.1%", positive: true }} />
+          <StatCard label="Badges Awarded" value="1,284" icon={Trophy} delta={{ value: "+3.2%", positive: true }} />
+          <StatCard label="Avg Daily Users" value="1,620" icon={Users} delta={{ value: "+5.6%", positive: true }} />
         </div>
 
         <Card>
