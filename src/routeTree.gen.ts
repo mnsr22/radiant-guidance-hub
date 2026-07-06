@@ -14,6 +14,7 @@ import { Route as TasbihRouteImport } from './routes/tasbih'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MonetizationRouteImport } from './routes/monetization'
 import { Route as ModerationRouteImport } from './routes/moderation'
@@ -23,6 +24,8 @@ import { Route as LogsRouteImport } from './routes/logs'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LiveRouteImport } from './routes/live'
 import { Route as IslamicRouteImport } from './routes/islamic'
+import { Route as HelpRouteImport } from './routes/help'
+import { Route as DeleteAccountRouteImport } from './routes/delete-account'
 import { Route as ChatsRouteImport } from './routes/chats'
 import { Route as AdsRouteImport } from './routes/ads'
 import { Route as IndexRouteImport } from './routes/index'
@@ -50,6 +53,11 @@ const SubscriptionsRoute = SubscriptionsRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NotificationsRoute = NotificationsRouteImport.update({
@@ -97,6 +105,16 @@ const IslamicRoute = IslamicRouteImport.update({
   path: '/islamic',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HelpRoute = HelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeleteAccountRoute = DeleteAccountRouteImport.update({
+  id: '/delete-account',
+  path: '/delete-account',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ChatsRoute = ChatsRouteImport.update({
   id: '/chats',
   path: '/chats',
@@ -117,6 +135,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/ads': typeof AdsRoute
   '/chats': typeof ChatsRoute
+  '/delete-account': typeof DeleteAccountRoute
+  '/help': typeof HelpRoute
   '/islamic': typeof IslamicRoute
   '/live': typeof LiveRoute
   '/login': typeof LoginRoute
@@ -126,6 +146,7 @@ export interface FileRoutesByFullPath {
   '/moderation': typeof ModerationRoute
   '/monetization': typeof MonetizationRoute
   '/notifications': typeof NotificationsRoute
+  '/privacy': typeof PrivacyRoute
   '/settings': typeof SettingsRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/support': typeof SupportRoute
@@ -136,6 +157,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ads': typeof AdsRoute
   '/chats': typeof ChatsRoute
+  '/delete-account': typeof DeleteAccountRoute
+  '/help': typeof HelpRoute
   '/islamic': typeof IslamicRoute
   '/live': typeof LiveRoute
   '/login': typeof LoginRoute
@@ -145,6 +168,7 @@ export interface FileRoutesByTo {
   '/moderation': typeof ModerationRoute
   '/monetization': typeof MonetizationRoute
   '/notifications': typeof NotificationsRoute
+  '/privacy': typeof PrivacyRoute
   '/settings': typeof SettingsRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/support': typeof SupportRoute
@@ -156,6 +180,8 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/ads': typeof AdsRoute
   '/chats': typeof ChatsRoute
+  '/delete-account': typeof DeleteAccountRoute
+  '/help': typeof HelpRoute
   '/islamic': typeof IslamicRoute
   '/live': typeof LiveRoute
   '/login': typeof LoginRoute
@@ -165,6 +191,7 @@ export interface FileRoutesById {
   '/moderation': typeof ModerationRoute
   '/monetization': typeof MonetizationRoute
   '/notifications': typeof NotificationsRoute
+  '/privacy': typeof PrivacyRoute
   '/settings': typeof SettingsRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/support': typeof SupportRoute
@@ -177,6 +204,8 @@ export interface FileRouteTypes {
     | '/'
     | '/ads'
     | '/chats'
+    | '/delete-account'
+    | '/help'
     | '/islamic'
     | '/live'
     | '/login'
@@ -186,6 +215,7 @@ export interface FileRouteTypes {
     | '/moderation'
     | '/monetization'
     | '/notifications'
+    | '/privacy'
     | '/settings'
     | '/subscriptions'
     | '/support'
@@ -196,6 +226,8 @@ export interface FileRouteTypes {
     | '/'
     | '/ads'
     | '/chats'
+    | '/delete-account'
+    | '/help'
     | '/islamic'
     | '/live'
     | '/login'
@@ -205,6 +237,7 @@ export interface FileRouteTypes {
     | '/moderation'
     | '/monetization'
     | '/notifications'
+    | '/privacy'
     | '/settings'
     | '/subscriptions'
     | '/support'
@@ -215,6 +248,8 @@ export interface FileRouteTypes {
     | '/'
     | '/ads'
     | '/chats'
+    | '/delete-account'
+    | '/help'
     | '/islamic'
     | '/live'
     | '/login'
@@ -224,6 +259,7 @@ export interface FileRouteTypes {
     | '/moderation'
     | '/monetization'
     | '/notifications'
+    | '/privacy'
     | '/settings'
     | '/subscriptions'
     | '/support'
@@ -235,6 +271,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdsRoute: typeof AdsRoute
   ChatsRoute: typeof ChatsRoute
+  DeleteAccountRoute: typeof DeleteAccountRoute
+  HelpRoute: typeof HelpRoute
   IslamicRoute: typeof IslamicRoute
   LiveRoute: typeof LiveRoute
   LoginRoute: typeof LoginRoute
@@ -244,6 +282,7 @@ export interface RootRouteChildren {
   ModerationRoute: typeof ModerationRoute
   MonetizationRoute: typeof MonetizationRoute
   NotificationsRoute: typeof NotificationsRoute
+  PrivacyRoute: typeof PrivacyRoute
   SettingsRoute: typeof SettingsRoute
   SubscriptionsRoute: typeof SubscriptionsRoute
   SupportRoute: typeof SupportRoute
@@ -286,6 +325,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/notifications': {
@@ -351,6 +397,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IslamicRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/help': {
+      id: '/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/delete-account': {
+      id: '/delete-account'
+      path: '/delete-account'
+      fullPath: '/delete-account'
+      preLoaderRoute: typeof DeleteAccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/chats': {
       id: '/chats'
       path: '/chats'
@@ -379,6 +439,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdsRoute: AdsRoute,
   ChatsRoute: ChatsRoute,
+  DeleteAccountRoute: DeleteAccountRoute,
+  HelpRoute: HelpRoute,
   IslamicRoute: IslamicRoute,
   LiveRoute: LiveRoute,
   LoginRoute: LoginRoute,
@@ -388,6 +450,7 @@ const rootRouteChildren: RootRouteChildren = {
   ModerationRoute: ModerationRoute,
   MonetizationRoute: MonetizationRoute,
   NotificationsRoute: NotificationsRoute,
+  PrivacyRoute: PrivacyRoute,
   SettingsRoute: SettingsRoute,
   SubscriptionsRoute: SubscriptionsRoute,
   SupportRoute: SupportRoute,
@@ -397,12 +460,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
