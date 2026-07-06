@@ -24,6 +24,7 @@ import { Route as LogsRouteImport } from './routes/logs'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LiveRouteImport } from './routes/live'
 import { Route as IslamicRouteImport } from './routes/islamic'
+import { Route as DeleteAccountRouteImport } from './routes/delete-account'
 import { Route as ChatsRouteImport } from './routes/chats'
 import { Route as AdsRouteImport } from './routes/ads'
 import { Route as IndexRouteImport } from './routes/index'
@@ -103,6 +104,11 @@ const IslamicRoute = IslamicRouteImport.update({
   path: '/islamic',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DeleteAccountRoute = DeleteAccountRouteImport.update({
+  id: '/delete-account',
+  path: '/delete-account',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ChatsRoute = ChatsRouteImport.update({
   id: '/chats',
   path: '/chats',
@@ -123,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/ads': typeof AdsRoute
   '/chats': typeof ChatsRoute
+  '/delete-account': typeof DeleteAccountRoute
   '/islamic': typeof IslamicRoute
   '/live': typeof LiveRoute
   '/login': typeof LoginRoute
@@ -143,6 +150,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ads': typeof AdsRoute
   '/chats': typeof ChatsRoute
+  '/delete-account': typeof DeleteAccountRoute
   '/islamic': typeof IslamicRoute
   '/live': typeof LiveRoute
   '/login': typeof LoginRoute
@@ -164,6 +172,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/ads': typeof AdsRoute
   '/chats': typeof ChatsRoute
+  '/delete-account': typeof DeleteAccountRoute
   '/islamic': typeof IslamicRoute
   '/live': typeof LiveRoute
   '/login': typeof LoginRoute
@@ -186,6 +195,7 @@ export interface FileRouteTypes {
     | '/'
     | '/ads'
     | '/chats'
+    | '/delete-account'
     | '/islamic'
     | '/live'
     | '/login'
@@ -206,6 +216,7 @@ export interface FileRouteTypes {
     | '/'
     | '/ads'
     | '/chats'
+    | '/delete-account'
     | '/islamic'
     | '/live'
     | '/login'
@@ -226,6 +237,7 @@ export interface FileRouteTypes {
     | '/'
     | '/ads'
     | '/chats'
+    | '/delete-account'
     | '/islamic'
     | '/live'
     | '/login'
@@ -247,6 +259,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdsRoute: typeof AdsRoute
   ChatsRoute: typeof ChatsRoute
+  DeleteAccountRoute: typeof DeleteAccountRoute
   IslamicRoute: typeof IslamicRoute
   LiveRoute: typeof LiveRoute
   LoginRoute: typeof LoginRoute
@@ -371,6 +384,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IslamicRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/delete-account': {
+      id: '/delete-account'
+      path: '/delete-account'
+      fullPath: '/delete-account'
+      preLoaderRoute: typeof DeleteAccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/chats': {
       id: '/chats'
       path: '/chats'
@@ -399,6 +419,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdsRoute: AdsRoute,
   ChatsRoute: ChatsRoute,
+  DeleteAccountRoute: DeleteAccountRoute,
   IslamicRoute: IslamicRoute,
   LiveRoute: LiveRoute,
   LoginRoute: LoginRoute,
