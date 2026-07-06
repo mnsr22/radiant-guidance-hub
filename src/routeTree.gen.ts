@@ -14,6 +14,7 @@ import { Route as TasbihRouteImport } from './routes/tasbih'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MonetizationRouteImport } from './routes/monetization'
 import { Route as ModerationRouteImport } from './routes/moderation'
@@ -50,6 +51,11 @@ const SubscriptionsRoute = SubscriptionsRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NotificationsRoute = NotificationsRouteImport.update({
@@ -126,6 +132,7 @@ export interface FileRoutesByFullPath {
   '/moderation': typeof ModerationRoute
   '/monetization': typeof MonetizationRoute
   '/notifications': typeof NotificationsRoute
+  '/privacy': typeof PrivacyRoute
   '/settings': typeof SettingsRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/support': typeof SupportRoute
@@ -145,6 +152,7 @@ export interface FileRoutesByTo {
   '/moderation': typeof ModerationRoute
   '/monetization': typeof MonetizationRoute
   '/notifications': typeof NotificationsRoute
+  '/privacy': typeof PrivacyRoute
   '/settings': typeof SettingsRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/support': typeof SupportRoute
@@ -165,6 +173,7 @@ export interface FileRoutesById {
   '/moderation': typeof ModerationRoute
   '/monetization': typeof MonetizationRoute
   '/notifications': typeof NotificationsRoute
+  '/privacy': typeof PrivacyRoute
   '/settings': typeof SettingsRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/support': typeof SupportRoute
@@ -186,6 +195,7 @@ export interface FileRouteTypes {
     | '/moderation'
     | '/monetization'
     | '/notifications'
+    | '/privacy'
     | '/settings'
     | '/subscriptions'
     | '/support'
@@ -205,6 +215,7 @@ export interface FileRouteTypes {
     | '/moderation'
     | '/monetization'
     | '/notifications'
+    | '/privacy'
     | '/settings'
     | '/subscriptions'
     | '/support'
@@ -224,6 +235,7 @@ export interface FileRouteTypes {
     | '/moderation'
     | '/monetization'
     | '/notifications'
+    | '/privacy'
     | '/settings'
     | '/subscriptions'
     | '/support'
@@ -244,6 +256,7 @@ export interface RootRouteChildren {
   ModerationRoute: typeof ModerationRoute
   MonetizationRoute: typeof MonetizationRoute
   NotificationsRoute: typeof NotificationsRoute
+  PrivacyRoute: typeof PrivacyRoute
   SettingsRoute: typeof SettingsRoute
   SubscriptionsRoute: typeof SubscriptionsRoute
   SupportRoute: typeof SupportRoute
@@ -286,6 +299,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/notifications': {
@@ -388,6 +408,7 @@ const rootRouteChildren: RootRouteChildren = {
   ModerationRoute: ModerationRoute,
   MonetizationRoute: MonetizationRoute,
   NotificationsRoute: NotificationsRoute,
+  PrivacyRoute: PrivacyRoute,
   SettingsRoute: SettingsRoute,
   SubscriptionsRoute: SubscriptionsRoute,
   SupportRoute: SupportRoute,
@@ -397,12 +418,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
