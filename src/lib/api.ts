@@ -7,7 +7,8 @@
 // on their next navigation.
 export const BASE_URL =
   (import.meta.env as Record<string, string | undefined>).VITE_API_URL?.replace(/\/$/, "") ??
-  "http://localhost:3001/api";
+  // "http://localhost:3001/api";
+  "https://admin.halalconnect.space/api";
   // Production: set VITE_API_URL=https://admin.halalconnect.space/api
 
 // Server origin without the `/api` prefix — socket.io namespaces live at the root.
