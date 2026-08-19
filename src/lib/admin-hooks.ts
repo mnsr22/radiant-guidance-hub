@@ -315,3 +315,69 @@ export function useLive() {
   const { data, isLoading } = useGetLiveQuery(undefined, { pollingInterval: 15000 });
   return { data, isLoading };
 }
+
+// ── Support tickets ────────────────────────────────────────────
+export function useTickets(args?: { status?: string; category?: string; search?: string }) {
+  const { data, isLoading, isFetching } = useGetTicketsQuery(args ?? {});
+  return { data, isLoading, isFetching };
+}
+export function useTicket(id: string | null) {
+  const { data, isLoading } = useGetTicketQuery(id as string, { skip: !id });
+  return { data, isLoading };
+}
+export function useTicketMutations() {
+  const [reply] = useReplyTicketMutation();
+  const [setStatus] = useUpdateTicketStatusMutation();
+  return {
+    reply: wrap<{ id: string; body: string; close?: boolean }>(reply),
+    setStatus: wrap<{ id: string; status: TicketStatus }>(setStatus),
+  };
+}
+
+// ── Account deletion requests ──────────────────────────────────
+export function useDeletionRequests(status?: string) {
+  const { data, isLoading } = useGetDeletionRequestsQuery(status);
+  return { data, isLoading };
+}
+export function useDeletionMutations() {
+  const [confirm] = useConfirmDeletionMutation();
+  const [reject] = useRejectDeletionMutation();
+  return {
+    confirm: wrap<{ id: string; hardDelete?: boolean }>(confirm),
+    reject: wrap<{ id: string; reason?: string }>(reject),
+  };
+}
+
+// ── Tasbih & streaks ───────────────────────────────────────────
+export function useTasbihStats() {
+  const { data, isLoading } = useGetTasbihStatsQuery();
+  return { data, isLoading };
+}
+export function useTasbihWeekly() {
+  const { data, isLoading } = useGetTasbihWeeklyQuery();
+  return { data, isLoading };
+}
+export function useTasbihLeaderboard(limit = 20) {
+  const { data, isLoading } = useGetTasbihLeaderboardQuery(limit);
+  return { data, isLoading };
+}
+export function useTasbihBadges() {
+  const { data, isLoading } = useGetTasbihBadgesQuery();
+  return { data, isLoading };
+}
+export function useTasbihSettings() {
+  const { data, isLoading } = useGetTasbihSettingsQuery();
+  return { data, isLoading };
+}
+export function useTasbihMutations() {
+  const [createBadge] = useCreateTasbihBadgeMutation();
+  const [updateBadge] = useUpdateTasbihBadgeMutation();
+  const [saveSettings] = usePatchTasbihSettingsMutation();
+  const [adjustStreak] = useAdjustTasbihStreakMutation();
+  return {
+    createBadge: wrap<{ name: string; type: "streak" | "count"; threshold: number }>(createBadge),
+    updateBadge: wrap<{ id: string; active?: boolean; name?: string; threshold?: number }>(updateBadge),
+    saveSettings: wrap<Partial<TasbihSettings>>(saveSettings),
+    adjustStreak: wrap<{ userId: string; currentStreak: number; reason?: string }>(adjustStreak),
+  };
+}
