@@ -15,6 +15,78 @@ export type GetUsersArgs = {
   practice?: string;
 };
 
+// ── Support tickets / deletions / tasbih payload shapes ──────────
+export type TicketStatus = "open" | "pending" | "closed";
+
+export type SupportTicket = {
+  id: string;
+  userId: string | null;
+  name: string;
+  email: string;
+  category: string;
+  subject: string;
+  message: string;
+  status: TicketStatus;
+  appVersion?: string | null;
+  os?: string | null;
+  device?: string | null;
+  replyCount?: number;
+  lastReplyAt?: string | null;
+  createdAt: string;
+};
+
+export type TicketReply = {
+  id: string;
+  body: string;
+  fromAdmin: boolean;
+  authorName?: string | null;
+  createdAt: string;
+};
+
+export type SupportTicketDetail = SupportTicket & { replies: TicketReply[] };
+
+export type DeletionRequest = {
+  id: string;
+  userId: string | null;
+  email: string;
+  phone?: string | null;
+  reason?: string | null;
+  status: "pending" | "confirmed" | "rejected";
+  requestedAt: string;
+  scheduledPurgeAt?: string | null;
+  handledAt?: string | null;
+};
+
+export type TasbihStats = {
+  activeStreaks: number;
+  sessionsToday: number;
+  badgesAwarded: number;
+  avgDailyUsers: number;
+};
+
+export type TasbihLeader = {
+  userId: string;
+  name: string;
+  email: string;
+  currentStreak: number;
+  totalCount: number;
+};
+
+export type TasbihBadge = {
+  id: string;
+  name: string;
+  type: "streak" | "count";
+  threshold: number;
+  active: boolean;
+};
+
+export type TasbihSettings = {
+  dailyGoal: number;
+  graceDays: number;
+  requireAuth: boolean;
+  offlineSync: boolean;
+};
+
 const BASE_URL =
   (import.meta.env as Record<string, string | undefined>).VITE_API_URL?.replace(/\/$/, "") ??
   // "http://localhost:3001/api";
@@ -45,7 +117,7 @@ const baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> =
 export const adminApi = createApi({
   reducerPath: "adminApi",
   baseQuery,
-  tagTypes: ["Users", "Reports", "Ads", "Plans", "Subscriptions", "Islamic", "Logs", "Settings", "Conversations", "Me", "Broadcasts", "Inbox"],
+  tagTypes: ["Users", "Reports", "Ads", "Plans", "Subscriptions", "Islamic", "Logs", "Settings", "Conversations", "Me", "Broadcasts", "Inbox", "Tickets", "Deletions", "Tasbih"],
   endpoints: (b) => ({
     // ── Users ──────────────────────────────────────────────
     getUsers: b.query<
@@ -293,6 +365,114 @@ export const adminApi = createApi({
       query: (body) => ({ url: "/admin/me", method: "PATCH", body }),
       invalidatesTags: ["Me"],
     }),
+
+    // ── Support tickets ────────────────────────────────────
+    getTickets: b.query<
+      SupportTicket[],
+      { status?: string; category?: string; search?: string } | void
+    >({
+      query: (args) => {
+        const a = (args ?? {}) as { status?: string; category?: string; search?: string };
+        const params: Record<string, string> = {};
+        if (a.status && a.status !== "all") params.status = a.status;
+        if (a.category && a.category !== "all") params.category = a.category;
+        if (a.search) params.search = a.search;
+        return { url: "/admin/support/tickets", params };
+      },
+      transformResponse: (res: any) => (Array.isArray(res) ? res : (res?.tickets ?? [])),
+      providesTags: ["Tickets"],
+    }),
+    getTicket: b.query<SupportTicketDetail, string>({
+      query: (id) => `/admin/support/tickets/${id}`,
+      providesTags: ["Tickets"],
+    }),
+    replyTicket: b.mutation<unknown, { id: string; body: string; close?: boolean }>({
+      query: ({ id, body, close }) => ({
+        url: `/admin/support/tickets/${id}/reply`,
+        method: "POST",
+        body: { body, close: close ?? false },
+      }),
+      invalidatesTags: ["Tickets"],
+    }),
+    updateTicketStatus: b.mutation<unknown, { id: string; status: TicketStatus }>({
+      query: ({ id, status }) => ({
+        url: `/admin/support/tickets/${id}/status`,
+        method: "PATCH",
+        body: { status },
+      }),
+      invalidatesTags: ["Tickets"],
+    }),
+
+    // ── Account deletion requests ──────────────────────────
+    getDeletionRequests: b.query<DeletionRequest[], string | void>({
+      query: (status) => ({
+        url: "/admin/deletion-requests",
+        params: status && status !== "all" ? { status } : undefined,
+      }),
+      transformResponse: (res: any) => (Array.isArray(res) ? res : (res?.requests ?? [])),
+      providesTags: ["Deletions"],
+    }),
+    confirmDeletion: b.mutation<unknown, { id: string; hardDelete?: boolean }>({
+      query: ({ id, hardDelete }) => ({
+        url: `/admin/deletion-requests/${id}/confirm`,
+        method: "POST",
+        body: { hardDelete: hardDelete ?? true },
+      }),
+      invalidatesTags: ["Deletions", "Users"],
+    }),
+    rejectDeletion: b.mutation<unknown, { id: string; reason?: string }>({
+      query: ({ id, reason }) => ({
+        url: `/admin/deletion-requests/${id}/reject`,
+        method: "POST",
+        body: { reason },
+      }),
+      invalidatesTags: ["Deletions"],
+    }),
+
+    // ── Tasbih & streaks ───────────────────────────────────
+    getTasbihStats: b.query<TasbihStats, void>({
+      query: () => "/admin/tasbih/stats",
+      providesTags: ["Tasbih"],
+    }),
+    getTasbihWeekly: b.query<{ day: string; sessions: number; users: number }[], void>({
+      query: () => "/admin/tasbih/weekly",
+      transformResponse: (res: any) => (Array.isArray(res) ? res : (res?.days ?? [])),
+      providesTags: ["Tasbih"],
+    }),
+    getTasbihLeaderboard: b.query<TasbihLeader[], number | void>({
+      query: (limit) => ({ url: "/admin/tasbih/leaderboard", params: { limit: limit ?? 20 } }),
+      transformResponse: (res: any) => (Array.isArray(res) ? res : (res?.users ?? [])),
+      providesTags: ["Tasbih"],
+    }),
+    getTasbihBadges: b.query<TasbihBadge[], void>({
+      query: () => "/admin/tasbih/badges",
+      transformResponse: (res: any) => (Array.isArray(res) ? res : (res?.badges ?? [])),
+      providesTags: ["Tasbih"],
+    }),
+    createTasbihBadge: b.mutation<unknown, { name: string; type: "streak" | "count"; threshold: number }>({
+      query: (body) => ({ url: "/admin/tasbih/badges", method: "POST", body }),
+      invalidatesTags: ["Tasbih"],
+    }),
+    updateTasbihBadge: b.mutation<unknown, { id: string; active?: boolean; name?: string; threshold?: number }>({
+      query: ({ id, ...body }) => ({ url: `/admin/tasbih/badges/${id}`, method: "PATCH", body }),
+      invalidatesTags: ["Tasbih"],
+    }),
+    getTasbihSettings: b.query<TasbihSettings, void>({
+      query: () => "/admin/tasbih/settings",
+      providesTags: ["Tasbih"],
+    }),
+    patchTasbihSettings: b.mutation<unknown, Partial<TasbihSettings>>({
+      query: (body) => ({ url: "/admin/tasbih/settings", method: "PATCH", body }),
+      invalidatesTags: ["Tasbih"],
+    }),
+    adjustTasbihStreak: b.mutation<unknown, { userId: string; currentStreak: number; reason?: string }>({
+      query: ({ userId, ...body }) => ({
+        url: `/admin/tasbih/users/${userId}/streak`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: ["Tasbih"],
+    }),
   }),
 });
 
@@ -348,4 +528,23 @@ export const {
   useDeleteConversationMutation,
   useGetMatchesQuery,
   useGetLiveQuery,
+} = adminApi;
+
+export const {
+  useGetTicketsQuery,
+  useGetTicketQuery,
+  useReplyTicketMutation,
+  useUpdateTicketStatusMutation,
+  useGetDeletionRequestsQuery,
+  useConfirmDeletionMutation,
+  useRejectDeletionMutation,
+  useGetTasbihStatsQuery,
+  useGetTasbihWeeklyQuery,
+  useGetTasbihLeaderboardQuery,
+  useGetTasbihBadgesQuery,
+  useCreateTasbihBadgeMutation,
+  useUpdateTasbihBadgeMutation,
+  useGetTasbihSettingsQuery,
+  usePatchTasbihSettingsMutation,
+  useAdjustTasbihStreakMutation,
 } = adminApi;
