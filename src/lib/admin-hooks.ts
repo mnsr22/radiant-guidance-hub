@@ -57,6 +57,25 @@ import {
   useGetMatchesQuery,
   useGetLiveQuery,
 } from "@/store/admin-api";
+import {
+  useGetTicketsQuery,
+  useGetTicketQuery,
+  useReplyTicketMutation,
+  useUpdateTicketStatusMutation,
+  useGetDeletionRequestsQuery,
+  useConfirmDeletionMutation,
+  useRejectDeletionMutation,
+  useGetTasbihStatsQuery,
+  useGetTasbihWeeklyQuery,
+  useGetTasbihLeaderboardQuery,
+  useGetTasbihBadgesQuery,
+  useCreateTasbihBadgeMutation,
+  useUpdateTasbihBadgeMutation,
+  useGetTasbihSettingsQuery,
+  usePatchTasbihSettingsMutation,
+  useAdjustTasbihStreakMutation,
+} from "@/store/admin-api";
+import type { TicketStatus, TasbihSettings } from "@/store/admin-api";
 
 type MutOpts = { onSuccess?: () => void; onError?: (e: unknown) => void };
 
