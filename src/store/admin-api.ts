@@ -15,6 +15,78 @@ export type GetUsersArgs = {
   practice?: string;
 };
 
+// ── Support tickets / deletions / tasbih payload shapes ──────────
+export type TicketStatus = "open" | "pending" | "closed";
+
+export type SupportTicket = {
+  id: string;
+  userId: string | null;
+  name: string;
+  email: string;
+  category: string;
+  subject: string;
+  message: string;
+  status: TicketStatus;
+  appVersion?: string | null;
+  os?: string | null;
+  device?: string | null;
+  replyCount?: number;
+  lastReplyAt?: string | null;
+  createdAt: string;
+};
+
+export type TicketReply = {
+  id: string;
+  body: string;
+  fromAdmin: boolean;
+  authorName?: string | null;
+  createdAt: string;
+};
+
+export type SupportTicketDetail = SupportTicket & { replies: TicketReply[] };
+
+export type DeletionRequest = {
+  id: string;
+  userId: string | null;
+  email: string;
+  phone?: string | null;
+  reason?: string | null;
+  status: "pending" | "confirmed" | "rejected";
+  requestedAt: string;
+  scheduledPurgeAt?: string | null;
+  handledAt?: string | null;
+};
+
+export type TasbihStats = {
+  activeStreaks: number;
+  sessionsToday: number;
+  badgesAwarded: number;
+  avgDailyUsers: number;
+};
+
+export type TasbihLeader = {
+  userId: string;
+  name: string;
+  email: string;
+  currentStreak: number;
+  totalCount: number;
+};
+
+export type TasbihBadge = {
+  id: string;
+  name: string;
+  type: "streak" | "count";
+  threshold: number;
+  active: boolean;
+};
+
+export type TasbihSettings = {
+  dailyGoal: number;
+  graceDays: number;
+  requireAuth: boolean;
+  offlineSync: boolean;
+};
+
 const BASE_URL =
   (import.meta.env as Record<string, string | undefined>).VITE_API_URL?.replace(/\/$/, "") ??
   // "http://localhost:3001/api";
