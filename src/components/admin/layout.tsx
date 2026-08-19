@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { AdminSidebar, SidebarNav, SidebarBrand } from "./sidebar";
 import { AdminTopbar } from "./topbar";
 import { cn } from "@/lib/utils";
-import { getToken } from "@/lib/api";
+import { getToken, onSessionExpired } from "@/lib/api";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 export function AdminLayout({ children }: { children: ReactNode }) {
@@ -14,6 +14,9 @@ export function AdminLayout({ children }: { children: ReactNode }) {
   // Gate the whole admin shell: no token → bounce to /login.
   useEffect(() => {
     if (!getToken()) navigate({ to: "/login" });
+    // Also react the moment a request kills the session, instead of leaving a
+    // stale page up until the user happens to navigate somewhere else.
+    return onSessionExpired(() => navigate({ to: "/login" }));
   }, [navigate]);
 
   return (

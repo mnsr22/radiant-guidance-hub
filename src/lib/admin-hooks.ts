@@ -93,8 +93,10 @@ function wrap<T>(trigger: (arg: T) => { unwrap: () => Promise<unknown> }) {
 }
 
 // ── Users ──────────────────────────────────────────────────────
-export function useUsers(args?: GetUsersArgs) {
-  const { data, isLoading, isFetching } = useGetUsersQuery(args ?? {});
+export function useUsers(args?: GetUsersArgs, opts?: { skip?: boolean }) {
+  const { data, isLoading, isFetching } = useGetUsersQuery(args ?? {}, {
+    skip: opts?.skip ?? false,
+  });
   return { data, isLoading, isFetching };
 }
 export function useUserMutations() {
@@ -108,7 +110,14 @@ export function useUserMutations() {
     setStatus: wrap<{ id: string; status: MockUser["status"] }>(setStatus),
     verify: wrap<{ id: string; verified: boolean }>(verify),
     message: wrap<{ id: string; subject?: string; body: string }>(message),
-    create: wrap<{ name: string; email: string; password: string; role?: "user" | "admin"; status?: string; gender?: "male" | "female" }>(create),
+    create: wrap<{
+      name: string;
+      email: string;
+      password: string;
+      role?: "user" | "admin";
+      status?: string;
+      gender?: "male" | "female";
+    }>(create),
     update: wrap<{ id: string; body: Record<string, unknown> }>(update),
     resetSwipes: wrap<string>(resetSwipes),
   };
@@ -133,7 +142,9 @@ export function useReportMutations() {
   const [resolve] = useResolveReportMutation();
   const [ban] = useBanReportMutation();
   return {
-    resolve: wrap<{ id: string; status: "reviewed" | "resolved" | "dismissed"; note?: string }>(resolve),
+    resolve: wrap<{ id: string; status: "reviewed" | "resolved" | "dismissed"; note?: string }>(
+      resolve,
+    ),
     ban: wrap<string>(ban),
   };
 }
@@ -143,7 +154,9 @@ export function useMessaging() {
   const [sendBulk] = useSendBulkMessageMutation();
   const [broadcast] = useBroadcastMutation();
   return {
-    sendBulk: wrap<{ userIds?: string[]; audience?: string; subject?: string; body: string }>(sendBulk),
+    sendBulk: wrap<{ userIds?: string[]; audience?: string; subject?: string; body: string }>(
+      sendBulk,
+    ),
     broadcast: wrap<{ title: string; message: string; audience?: string }>(broadcast),
   };
 }
@@ -376,7 +389,9 @@ export function useTasbihMutations() {
   const [adjustStreak] = useAdjustTasbihStreakMutation();
   return {
     createBadge: wrap<{ name: string; type: "streak" | "count"; threshold: number }>(createBadge),
-    updateBadge: wrap<{ id: string; active?: boolean; name?: string; threshold?: number }>(updateBadge),
+    updateBadge: wrap<{ id: string; active?: boolean; name?: string; threshold?: number }>(
+      updateBadge,
+    ),
     saveSettings: wrap<Partial<TasbihSettings>>(saveSettings),
     adjustStreak: wrap<{ userId: string; currentStreak: number; reason?: string }>(adjustStreak),
   };

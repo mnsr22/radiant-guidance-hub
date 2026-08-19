@@ -1,10 +1,14 @@
 // Admin API client for the Halal Connect backend (NestJS, /api prefix).
 // Base URL comes from VITE_API_URL (default: local backend on :3001).
 
-const BASE_URL =
+// Single source of truth for the API origin — src/store/admin-api.ts imports
+// this rather than declaring its own. They drifted apart once (login pointing
+// at localhost while RTK Query still hit production), which logged admins out
+// on their next navigation.
+export const BASE_URL =
   (import.meta.env as Record<string, string | undefined>).VITE_API_URL?.replace(/\/$/, "") ??
-  // "http://localhost:3001/api";
-  "https://admin.halalconnect.space/api";
+  "http://localhost:3001/api";
+  // Production: set VITE_API_URL=https://admin.halalconnect.space/api
 
 // Server origin without the `/api` prefix — socket.io namespaces live at the root.
 export const SOCKET_URL = BASE_URL.replace(/\/api$/, "");
@@ -22,6 +26,23 @@ export function setToken(token: string) {
 
 export function clearToken() {
   localStorage.removeItem(TOKEN_KEY);
+}
+
+type SessionListener = () => void;
+const sessionListeners = new Set<SessionListener>();
+
+/// Subscribe to forced logouts (401/403 on an authenticated request).
+export function onSessionExpired(fn: SessionListener): () => void {
+  sessionListeners.add(fn);
+  return () => sessionListeners.delete(fn);
+}
+
+/// Drops the token and tells the shell to bounce to /login right away. Without
+/// the broadcast the redirect waits for the next AdminLayout mount, which made
+/// an expired session look like "clicking page X logs me out".
+export function expireSession() {
+  clearToken();
+  sessionListeners.forEach((fn) => fn());
 }
 
 export class ApiError extends Error {
@@ -61,9 +82,10 @@ export async function api<T = unknown>(path: string, opts: ApiOptions = {}): Pro
     body: body == null ? undefined : JSON.stringify(body),
   });
 
-  // 401/403 → session is dead/insufficient; drop the token so the guard kicks in.
-  if (res.status === 401 || res.status === 403) {
-    clearToken();
+  // 401/403 on an authenticated call → session is dead/insufficient. Login
+  // failures (auth: false) must not be treated as an expired session.
+  if (auth && (res.status === 401 || res.status === 403)) {
+    expireSession();
   }
 
   const text = await res.text();

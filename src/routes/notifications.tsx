@@ -8,19 +8,34 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { useMessaging, useNotificationHistory, useAudienceCounts } from "@/lib/admin-hooks";
+import {
+  useMessaging,
+  useNotificationHistory,
+  useAudienceCounts,
+  useUsers,
+} from "@/lib/admin-hooks";
+import { Checkbox } from "@/components/ui/checkbox";
+import { X, Search } from "lucide-react";
 
 export const Route = createFileRoute("/notifications")({ component: NotificationsPage });
 
+// Keys must match AdminMessagingService.resolveTargets on the backend.
 const audienceLabel: Record<string, string> = {
   all: "All users",
   active: "Active users (30d)",
-  premium: "Premium subscribers",
   new: "New signups (7d)",
-  region: "By region",
+  premium: "Premium subscribers",
   free: "Free users",
+  verified: "Verified profiles",
+  banned: "Banned accounts",
 };
 
 function rel(iso?: string) {
@@ -34,23 +49,53 @@ function rel(iso?: string) {
   return `${Math.floor(h / 24)}d ago`;
 }
 
+type Mode = "segment" | "users";
+
 function NotificationsPage() {
+  const [mode, setMode] = useState<Mode>("segment");
   const [audience, setAudience] = useState("all");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
+
+  // Recipient picker (mode === "users")
+  const [search, setSearch] = useState("");
+  const [picked, setPicked] = useState<{ id: string; name: string; email: string }[]>([]);
+
   const { broadcast } = useMessaging();
   const { data: history } = useNotificationHistory();
   const { data: counts } = useAudienceCounts();
+  // Only query while the picker is open, and only once there's something to
+  // search for — otherwise every keystroke pulls the full user list.
+  const searchTerm = search.trim();
+  const canSearch = mode === "users" && searchTerm.length >= 2;
+  const { data: userResults, isFetching: searching } = useUsers(
+    { search: searchTerm, limit: 8 },
+    { skip: !canSearch },
+  );
 
-  // Estimated reach per UI segment, from real counts.
-  const audienceReach: Record<string, number> = {
-    all: counts?.all ?? 0,
-    active: counts?.active ?? 0,
-    premium: counts?.premium ?? 0,
-    new: counts?.new ?? 0,
-    region: counts?.all ?? 0,
+  // Estimated reach per UI segment, from real counts. Segments the counts
+  // endpoint doesn't cover show no estimate rather than a wrong one.
+  const audienceReach: Record<string, number | undefined> = {
+    all: counts?.all,
+    active: counts?.active,
+    premium: counts?.premium,
+    new: counts?.new,
+    free: counts?.all != null && counts?.premium != null ? counts.all - counts.premium : undefined,
+    verified: undefined,
+    banned: undefined,
   };
+
+  const pickedIds = new Set(picked.map((u) => u.id));
+  const candidates = (canSearch ? (userResults?.users ?? []) : []).filter(
+    (u) => !pickedIds.has(u.id),
+  );
+
+  function togglePick(u: { id: string; name: string; email: string }) {
+    setPicked((cur) =>
+      cur.some((x) => x.id === u.id) ? cur.filter((x) => x.id !== u.id) : [...cur, u],
+    );
+  }
 
   const sent = ((history ?? []) as any[]).map((b) => ({
     id: b.id,
@@ -65,17 +110,27 @@ function NotificationsPage() {
       toast.error("Title and message are required");
       return;
     }
+    if (mode === "users" && picked.length === 0) {
+      toast.error("Pick at least one recipient");
+      return;
+    }
     setSending(true);
-    // Backend audiences are all | free | premium; map the UI segments onto them.
-    const apiAudience = audience === "premium" ? "premium" : "all";
     try {
-      const res = (await broadcast.mutateAsync({ title, message: body, audience: apiAudience })) as {
-        sent: number;
-      };
-      const reach = res?.sent ?? audienceReach[audience] ?? 0;
-      toast.success(`Notification sent to ${reach.toLocaleString()} users`);
+      // userIds and audience are mutually exclusive — sending both would let
+      // the backend widen a targeted message into a segment.
+      const payload =
+        mode === "users"
+          ? { title, message: body, userIds: picked.map((u) => u.id) }
+          : { title, message: body, audience };
+      const res = (await broadcast.mutateAsync(payload)) as { sent: number };
+      const reach = res?.sent ?? 0;
+      toast.success(
+        `Notification sent to ${reach.toLocaleString()} ${reach === 1 ? "user" : "users"}`,
+      );
       setTitle("");
       setBody("");
+      setPicked([]);
+      setSearch("");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to send");
     } finally {
@@ -85,28 +140,123 @@ function NotificationsPage() {
 
   return (
     <AdminLayout>
-      <PageHeader title="Notifications & Announcements" description="Reach your community with the right message." />
+      <PageHeader
+        title="Notifications & Announcements"
+        description="Reach your community with the right message."
+      />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2 p-5 shadow-elegant">
           <h3 className="font-semibold mb-4">Compose announcement</h3>
           <div className="space-y-4">
             <div>
-              <Label className="text-xs">Audience</Label>
-              <Select value={audience} onValueChange={setAudience}>
-                <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All users</SelectItem>
-                  <SelectItem value="active">Active users (30d)</SelectItem>
-                  <SelectItem value="premium">Premium subscribers</SelectItem>
-                  <SelectItem value="new">New signups (7d)</SelectItem>
-                  <SelectItem value="region">By region</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-[11px] text-muted-foreground mt-1.5">
-                Estimated reach: {(audienceReach[audience] ?? 0).toLocaleString()} users
-              </p>
+              <Label className="text-xs">Send to</Label>
+              <div className="mt-1.5 inline-flex rounded-md border p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setMode("segment")}
+                  className={`px-3 py-1.5 text-xs rounded ${mode === "segment" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                >
+                  An audience
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode("users")}
+                  className={`px-3 py-1.5 text-xs rounded ${mode === "users" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                >
+                  Specific users
+                </button>
+              </div>
             </div>
+
+            {mode === "segment" ? (
+              <div>
+                <Label className="text-xs">Audience</Label>
+                <Select value={audience} onValueChange={setAudience}>
+                  <SelectTrigger className="mt-1.5">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(audienceLabel).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground mt-1.5">
+                  {audienceReach[audience] != null
+                    ? `Estimated reach: ${audienceReach[audience]!.toLocaleString()} users`
+                    : "Reach is calculated when you send."}
+                </p>
+              </div>
+            ) : (
+              <div>
+                <Label className="text-xs">Recipients</Label>
+
+                {picked.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-1.5">
+                    {picked.map((u) => (
+                      <span
+                        key={u.id}
+                        className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs"
+                      >
+                        {u.name || u.email}
+                        <button
+                          type="button"
+                          aria-label={`Remove ${u.name || u.email}`}
+                          onClick={() => togglePick(u)}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <div className="relative mt-1.5">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    className="pl-8"
+                    placeholder="Search by name or email…"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </div>
+
+                {canSearch && (
+                  <div className="mt-1.5 rounded-md border divide-y max-h-52 overflow-y-auto">
+                    {searching && (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">Searching…</div>
+                    )}
+                    {!searching && candidates.length === 0 && (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">No matches</div>
+                    )}
+                    {candidates.map((u) => (
+                      <label
+                        key={u.id}
+                        className="flex items-center gap-2.5 px-3 py-2 cursor-pointer hover:bg-muted/50"
+                      >
+                        <Checkbox checked={false} onCheckedChange={() => togglePick(u)} />
+                        <span className="min-w-0">
+                          <span className="block text-sm truncate">{u.name}</span>
+                          <span className="block text-[11px] text-muted-foreground truncate">
+                            {u.email}
+                          </span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+
+                <p className="text-[11px] text-muted-foreground mt-1.5">
+                  {picked.length === 0
+                    ? "Type at least 2 characters to search."
+                    : `Sending to ${picked.length} ${picked.length === 1 ? "user" : "users"}.`}
+                </p>
+              </div>
+            )}
             <div>
               <Label className="text-xs">Title</Label>
               <Input
@@ -126,7 +276,9 @@ function NotificationsPage() {
                 onChange={(e) => setBody(e.target.value)}
                 maxLength={500}
               />
-              <div className="text-[11px] text-muted-foreground text-right mt-1">{body.length}/500</div>
+              <div className="text-[11px] text-muted-foreground text-right mt-1">
+                {body.length}/500
+              </div>
             </div>
             <div className="flex justify-end">
               <Button
@@ -146,7 +298,9 @@ function NotificationsPage() {
           </h3>
           <div className="space-y-3">
             {sent.length === 0 && (
-              <div className="p-6 text-center text-sm text-muted-foreground">No announcements sent yet.</div>
+              <div className="p-6 text-center text-sm text-muted-foreground">
+                No announcements sent yet.
+              </div>
             )}
             {sent.map((n) => (
               <div key={n.id} className="p-3 rounded-lg border hover:bg-muted/30 transition-colors">

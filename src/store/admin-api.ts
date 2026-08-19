@@ -3,7 +3,7 @@
 // with stable names via lib/admin-hooks.ts).
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query";
-import { getToken, clearToken } from "@/lib/api";
+import { BASE_URL, getToken, expireSession } from "@/lib/api";
 import type { MockUser, Report, Conversation, AuditLog } from "@/lib/mock-data";
 import { mapUser, mapReport, mapConversation, mapLog, toApiStatus } from "@/lib/mappers";
 
@@ -87,11 +87,6 @@ export type TasbihSettings = {
   offlineSync: boolean;
 };
 
-const BASE_URL =
-  (import.meta.env as Record<string, string | undefined>).VITE_API_URL?.replace(/\/$/, "") ??
-  // "http://localhost:3001/api";
-  "https://admin.halalconnect.space/api";
-
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: BASE_URL,
   prepareHeaders: (headers) => {
@@ -109,7 +104,7 @@ const baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> =
 ) => {
   const result = await rawBaseQuery(args, store, extra);
   if (result.error && (result.error.status === 401 || result.error.status === 403)) {
-    clearToken();
+    expireSession();
   }
   return result;
 };
@@ -117,7 +112,23 @@ const baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> =
 export const adminApi = createApi({
   reducerPath: "adminApi",
   baseQuery,
-  tagTypes: ["Users", "Reports", "Ads", "Plans", "Subscriptions", "Islamic", "Logs", "Settings", "Conversations", "Me", "Broadcasts", "Inbox", "Tickets", "Deletions", "Tasbih"],
+  tagTypes: [
+    "Users",
+    "Reports",
+    "Ads",
+    "Plans",
+    "Subscriptions",
+    "Islamic",
+    "Logs",
+    "Settings",
+    "Conversations",
+    "Me",
+    "Broadcasts",
+    "Inbox",
+    "Tickets",
+    "Deletions",
+    "Tasbih",
+  ],
   endpoints: (b) => ({
     // ── Users ──────────────────────────────────────────────
     getUsers: b.query<
@@ -145,7 +156,14 @@ export const adminApi = createApi({
     }),
     createUser: b.mutation<
       unknown,
-      { name: string; email: string; password: string; role?: "user" | "admin"; status?: string; gender?: "male" | "female" }
+      {
+        name: string;
+        email: string;
+        password: string;
+        role?: "user" | "admin";
+        status?: string;
+        gender?: "male" | "female";
+      }
     >({
       query: (body) => ({ url: "/admin/users", method: "POST", body }),
       invalidatesTags: ["Users"],
@@ -210,7 +228,12 @@ export const adminApi = createApi({
     >({
       query: (body) => ({ url: "/admin/messaging", method: "POST", body }),
     }),
-    broadcast: b.mutation<{ sent: number }, { title: string; message: string; audience?: string }>({
+    broadcast: b.mutation<
+      { sent: number },
+      // Either an audience segment or an explicit recipient list. When userIds
+      // is present the backend ignores `audience` and targets only those users.
+      { title: string; message: string; audience?: string; userIds?: string[] }
+    >({
       query: (body) => ({ url: "/admin/notifications/broadcast", method: "POST", body }),
       invalidatesTags: ["Broadcasts"],
     }),
@@ -218,9 +241,11 @@ export const adminApi = createApi({
       query: () => "/admin/notifications/history",
       providesTags: ["Broadcasts"],
     }),
-    getAudienceCounts: b.query<{ all: number; active: number; premium: number; new: number }, void>({
-      query: () => "/admin/notifications/audiences",
-    }),
+    getAudienceCounts: b.query<{ all: number; active: number; premium: number; new: number }, void>(
+      {
+        query: () => "/admin/notifications/audiences",
+      },
+    ),
 
     // ── Admin ↔ user inbox (support chat) ──────────────────
     getInboxThreads: b.query<any[], void>({
@@ -449,11 +474,17 @@ export const adminApi = createApi({
       transformResponse: (res: any) => (Array.isArray(res) ? res : (res?.badges ?? [])),
       providesTags: ["Tasbih"],
     }),
-    createTasbihBadge: b.mutation<unknown, { name: string; type: "streak" | "count"; threshold: number }>({
+    createTasbihBadge: b.mutation<
+      unknown,
+      { name: string; type: "streak" | "count"; threshold: number }
+    >({
       query: (body) => ({ url: "/admin/tasbih/badges", method: "POST", body }),
       invalidatesTags: ["Tasbih"],
     }),
-    updateTasbihBadge: b.mutation<unknown, { id: string; active?: boolean; name?: string; threshold?: number }>({
+    updateTasbihBadge: b.mutation<
+      unknown,
+      { id: string; active?: boolean; name?: string; threshold?: number }
+    >({
       query: ({ id, ...body }) => ({ url: `/admin/tasbih/badges/${id}`, method: "PATCH", body }),
       invalidatesTags: ["Tasbih"],
     }),
@@ -465,7 +496,10 @@ export const adminApi = createApi({
       query: (body) => ({ url: "/admin/tasbih/settings", method: "PATCH", body }),
       invalidatesTags: ["Tasbih"],
     }),
-    adjustTasbihStreak: b.mutation<unknown, { userId: string; currentStreak: number; reason?: string }>({
+    adjustTasbihStreak: b.mutation<
+      unknown,
+      { userId: string; currentStreak: number; reason?: string }
+    >({
       query: ({ userId, ...body }) => ({
         url: `/admin/tasbih/users/${userId}/streak`,
         method: "PATCH",
