@@ -128,7 +128,7 @@ function UsersPage() {
   }
 
   function handleExport() {
-    downloadCSV("noor-users", users, [
+    downloadCSV("halal-connect-users", users, [
       "id", "name", "email", "age", "gender", "country", "city",
       "practice", "madhab", "status", "verified", "premium", "completeness", "joined",
     ]);
