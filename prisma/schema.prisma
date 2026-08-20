@@ -420,3 +420,85 @@ model QuestionnaireVersion {
   publishedAt DateTime?
   createdAt   DateTime @default(now())
 }
+// =====================================================
+// Support tickets & account deletion
+// =====================================================
+
+enum TicketStatus {
+  OPEN
+  PENDING
+  CLOSED
+}
+
+enum TicketCategory {
+  ACCOUNT
+  MATCHES
+  BILLING
+  SAFETY
+  BUG
+  OTHER
+}
+
+model SupportTicket {
+  id         String         @id @default(cuid())
+  userId     String?
+  name       String
+  email      String
+  category   TicketCategory @default(OTHER)
+  subject    String
+  message    String
+  status     TicketStatus   @default(OPEN)
+  appVersion String?
+  os         String?
+  device     String?
+  lastReplyAt DateTime?
+  closedAt   DateTime?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  replies SupportTicketReply[]
+
+  @@index([status, createdAt])
+  @@index([email])
+  @@index([category])
+}
+
+model SupportTicketReply {
+  id         String   @id @default(cuid())
+  ticketId   String
+  body       String
+  fromAdmin  Boolean  @default(true)
+  authorId   String?  // admin user id when fromAdmin
+  authorName String?
+  createdAt  DateTime @default(now())
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId, createdAt])
+}
+
+enum DeletionStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+}
+
+model AccountDeletionRequest {
+  id               String         @id @default(cuid())
+  userId           String?
+  email            String
+  phone            String?
+  reason           String?
+  status           DeletionStatus @default(PENDING)
+  verificationCode String?        // emailed one-time confirm code
+  verifiedAt       DateTime?
+  handledById      String?        // admin who confirmed/rejected
+  handledAt        DateTime?
+  rejectionReason  String?
+  scheduledPurgeAt DateTime?      // hard purge deadline (<= 30 days)
+  purgedAt         DateTime?
+  requestedAt      DateTime       @default(now())
+
+  @@index([status, requestedAt])
+  @@index([email])
+}
