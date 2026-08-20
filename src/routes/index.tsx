@@ -54,7 +54,7 @@ function Overview() {
               variant="outline"
               size="sm"
               onClick={() => {
-                downloadCSV("noor-overview", growthData);
+                downloadCSV("halal-connect-overview", growthData);
                 toast.success("Overview exported to CSV");
               }}
             >

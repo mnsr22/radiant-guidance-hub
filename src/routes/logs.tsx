@@ -26,7 +26,7 @@ function LogsPage() {
   }), [logs, q, admin]);
 
   function handleExport() {
-    downloadCSV("noor-audit-logs", filtered, ["id", "admin", "action", "target", "timestamp"]);
+    downloadCSV("halal-connect-audit-logs", filtered, ["id", "admin", "action", "target", "timestamp"]);
     toast.success(`Exported ${filtered.length} log entries`);
   }
 
