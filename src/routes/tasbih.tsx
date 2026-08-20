@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AdminLayout } from "@/components/admin/layout";
 import { StatCard } from "@/components/admin/stat-card";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -23,6 +23,11 @@ import { CircleDot, Flame, Trophy, Users, Plus, Download } from "lucide-react";
 import { toast } from "sonner";
 import { downloadCSV } from "@/lib/csv";
 import { mockUsers } from "@/lib/mock-data";
+import {
+  useTasbihStats, useTasbihWeekly, useTasbihLeaderboard,
+  useTasbihBadges, useTasbihSettings, useTasbihMutations,
+} from "@/lib/admin-hooks";
+import type { TasbihBadge as ApiBadge, TasbihLeader } from "@/store/admin-api";
 
 export const Route = createFileRoute("/tasbih")({
   component: TasbihPage,
@@ -52,43 +57,124 @@ const initialBadges: Badge[] = [
 ];
 
 function TasbihPage() {
+  // Live data from /api/admin/tasbih/*; falls back to sample data until the
+  // backend endpoints are deployed so the page stays usable.
+  const { data: stats } = useTasbihStats();
+  const { data: weekly } = useTasbihWeekly();
+  const { data: leaders } = useTasbihLeaderboard(20);
+  const { data: apiBadges } = useTasbihBadges();
+  const { data: settings } = useTasbihSettings();
+  const { createBadge, updateBadge, saveSettings, adjustStreak } = useTasbihMutations();
+
   const [streakGrace, setStreakGrace] = useState([1]);
   const [dailyGoal, setDailyGoal] = useState([100]);
   const [requireAuth, setRequireAuth] = useState(true);
   const [offlineSync, setOfflineSync] = useState(true);
-  const [badges, setBadges] = useState<Badge[]>(initialBadges);
   const [newBadge, setNewBadge] = useState({ name: "", threshold: 0, type: "streak" as Badge["type"] });
+  const [localBadges, setLocalBadges] = useState<Badge[]>(initialBadges);
 
-  const topUsers = useMemo(
-    () =>
-      mockUsers.slice(0, 12).map((u, i) => ({
-        ...u,
-        streak: 60 - i * 3,
-        total: 12400 - i * 720,
-      })),
-    [],
-  );
+  // Adopt server settings once they arrive.
+  useEffect(() => {
+    if (!settings) return;
+    setDailyGoal([settings.dailyGoal]);
+    setStreakGrace([settings.graceDays]);
+    setRequireAuth(settings.requireAuth);
+    setOfflineSync(settings.offlineSync);
+  }, [settings]);
+
+  const weeklyData = weekly && weekly.length > 0 ? weekly : weeklyCounts;
+  const usingApiBadges = !!apiBadges && apiBadges.length > 0;
+  const badges: Badge[] = usingApiBadges
+    ? (apiBadges as ApiBadge[]).map((b) => ({
+        id: b.id, name: b.name, threshold: b.threshold, type: b.type, active: b.active,
+      }))
+    : localBadges;
+
+  const topUsers = useMemo(() => {
+    if (leaders && leaders.length > 0) {
+      return (leaders as TasbihLeader[]).map((l) => ({
+        id: l.userId,
+        name: l.name,
+        email: l.email,
+        streak: l.currentStreak,
+        total: l.totalCount,
+      }));
+    }
+    return mockUsers.slice(0, 12).map((u, i) => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      streak: 60 - i * 3,
+      total: 12400 - i * 720,
+    }));
+  }, [leaders]);
 
   const addBadge = () => {
     if (!newBadge.name || newBadge.threshold <= 0) {
       toast.error("Provide a name and threshold > 0");
       return;
     }
-    setBadges((b) => [
-      ...b,
-      { id: `b${Date.now()}`, name: newBadge.name, threshold: newBadge.threshold, type: newBadge.type, active: true },
-    ]);
+    const draft = { name: newBadge.name, type: newBadge.type, threshold: newBadge.threshold };
+    createBadge.mutate(draft, {
+      onSuccess: () => toast.success("Badge created"),
+      onError: () => {
+        setLocalBadges((b) => [...b, { id: `b${Date.now()}`, ...draft, active: true }]);
+        toast.success("Badge created locally (API unavailable)");
+      },
+    });
     setNewBadge({ name: "", threshold: 0, type: "streak" });
-    toast.success("Badge created");
   };
 
   const toggleBadge = (id: string) => {
-    setBadges((b) => b.map((x) => (x.id === id ? { ...x, active: !x.active } : x)));
+    const current = badges.find((b) => b.id === id);
+    if (!current) return;
+    updateBadge.mutate(
+      { id, active: !current.active },
+      {
+        onError: () =>
+          setLocalBadges((b) => b.map((x) => (x.id === id ? { ...x, active: !x.active } : x))),
+      },
+    );
+    if (!usingApiBadges) {
+      setLocalBadges((b) => b.map((x) => (x.id === id ? { ...x, active: !x.active } : x)));
+    }
+  };
+
+  const saveRules = () => {
+    saveSettings.mutate(
+      {
+        dailyGoal: dailyGoal[0],
+        graceDays: streakGrace[0],
+        requireAuth,
+        offlineSync,
+      },
+      {
+        onSuccess: () => toast.success("Streak rules saved"),
+        onError: () => toast.error("Could not save streak rules"),
+      },
+    );
+  };
+
+  const adjust = (userId: string, name: string, currentStreak: number) => {
+    const input = window.prompt(`Set current streak (days) for ${name}`, String(currentStreak));
+    if (input == null) return;
+    const value = Number(input);
+    if (!Number.isFinite(value) || value < 0) {
+      toast.error("Enter a valid number of days");
+      return;
+    }
+    adjustStreak.mutate(
+      { userId, currentStreak: value, reason: "Admin adjustment" },
+      {
+        onSuccess: () => toast.success(`Streak adjusted for ${name}`),
+        onError: () => toast.error("Could not adjust streak"),
+      },
+    );
   };
 
   const exportLeaderboard = () => {
-    downloadCSV(
-      "tasbih-leaderboard.csv",
+    const ok = downloadCSV(
+      `halal-connect-tasbih-leaderboard-${new Date().toISOString().slice(0, 10)}`,
       topUsers.map((u) => ({
         name: u.name,
         email: u.email,
@@ -96,7 +182,7 @@ function TasbihPage() {
         total_count: u.total,
       })),
     );
-    toast.success("Leaderboard exported");
+    toast[ok ? "success" : "error"](ok ? "Leaderboard exported" : "Nothing to export");
   };
 
   return (
@@ -110,10 +196,10 @@ function TasbihPage() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Active Streaks" value="8,420" icon={Flame} delta={{ value: "+12.4%", positive: true }} />
-          <StatCard label="Sessions Today" value="42,318" icon={CircleDot} delta={{ value: "+8.1%", positive: true }} />
-          <StatCard label="Badges Awarded" value="1,284" icon={Trophy} delta={{ value: "+3.2%", positive: true }} />
-          <StatCard label="Avg Daily Users" value="1,620" icon={Users} delta={{ value: "+5.6%", positive: true }} />
+          <StatCard label="Active Streaks" value={(stats?.activeStreaks ?? 8420).toLocaleString()} icon={Flame} delta={{ value: "+12.4%", positive: true }} />
+          <StatCard label="Sessions Today" value={(stats?.sessionsToday ?? 42318).toLocaleString()} icon={CircleDot} delta={{ value: "+8.1%", positive: true }} />
+          <StatCard label="Badges Awarded" value={(stats?.badgesAwarded ?? 1284).toLocaleString()} icon={Trophy} delta={{ value: "+3.2%", positive: true }} />
+          <StatCard label="Avg Daily Users" value={(stats?.avgDailyUsers ?? 1620).toLocaleString()} icon={Users} delta={{ value: "+5.6%", positive: true }} />
         </div>
 
         <Card>
@@ -130,7 +216,7 @@ function TasbihPage() {
               className="h-[280px] w-full"
             >
               <ResponsiveContainer>
-                <AreaChart data={weeklyCounts}>
+                <AreaChart data={weeklyData}>
                   <defs>
                     <linearGradient id="s" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.4} />
@@ -184,7 +270,7 @@ function TasbihPage() {
                 </div>
                 <Switch checked={offlineSync} onCheckedChange={setOfflineSync} />
               </div>
-              <Button onClick={() => toast.success("Streak rules saved")} className="w-full">
+              <Button onClick={saveRules} className="w-full">
                 Save Rules
               </Button>
             </CardContent>
@@ -303,7 +389,7 @@ function TasbihPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => toast.success(`Streak adjusted for ${u.name}`)}
+                        onClick={() => adjust(u.id, u.name, u.streak)}
                       >
                         Adjust
                       </Button>
