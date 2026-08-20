@@ -1,7 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, MessageSquare, Shield, Activity, Heart,
-  Settings, Moon, Bell, CreditCard, FileText, Sparkles, ChevronLeft, Send, Megaphone, Inbox, Receipt, CircleDot,
+  Settings, Moon, Bell, CreditCard, FileText, Sparkles, ChevronLeft, Send, Megaphone, Inbox, Receipt, CircleDot, LifeBuoy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ export const adminNav = [
   { to: "/chats", label: "Chat Monitoring", icon: MessageSquare },
   { to: "/messaging", label: "Messaging", icon: Send },
   { to: "/support", label: "Support Inbox", icon: Inbox },
+  { to: "/tickets", label: "Support Tickets", icon: LifeBuoy },
   { to: "/moderation", label: "Moderation", icon: Shield },
   { to: "/live", label: "Live Activity", icon: Activity },
   { to: "/matches", label: "Matches", icon: Heart },
