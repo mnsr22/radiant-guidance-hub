@@ -646,4 +646,11 @@ export const {
   useGetTasbihSettingsQuery,
   usePatchTasbihSettingsMutation,
   useAdjustTasbihStreakMutation,
+  useGetWaliLinksQuery,
+  useGetWaliSettingsQuery,
+  usePatchWaliSettingsMutation,
+  useUpdateWaliLinkMutation,
+  useSetWaliStatusMutation,
+  useResendWaliInviteMutation,
+  useRemoveWaliLinkMutation,
 } = adminApi;
