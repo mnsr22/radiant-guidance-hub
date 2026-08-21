@@ -74,8 +74,17 @@ import {
   useGetTasbihSettingsQuery,
   usePatchTasbihSettingsMutation,
   useAdjustTasbihStreakMutation,
+  useGetWaliLinksQuery,
+  useGetWaliSettingsQuery,
+  usePatchWaliSettingsMutation,
+  useUpdateWaliLinkMutation,
+  useSetWaliStatusMutation,
+  useResendWaliInviteMutation,
+  useRemoveWaliLinkMutation,
 } from "@/store/admin-api";
-import type { TicketStatus, TasbihSettings } from "@/store/admin-api";
+import type {
+  TicketStatus, TasbihSettings, WaliLink, WaliSettings, WaliStatus,
+} from "@/store/admin-api";
 
 type MutOpts = { onSuccess?: () => void; onError?: (e: unknown) => void };
 
@@ -394,5 +403,29 @@ export function useTasbihMutations() {
     ),
     saveSettings: wrap<Partial<TasbihSettings>>(saveSettings),
     adjustStreak: wrap<{ userId: string; currentStreak: number; reason?: string }>(adjustStreak),
+  };
+}
+
+// ── Wali (guardian) oversight ──────────────────────────────────
+export function useWaliLinks(args?: { status?: string; search?: string }) {
+  const { data, isLoading, isFetching } = useGetWaliLinksQuery(args ?? {});
+  return { data, isLoading, isFetching };
+}
+export function useWaliSettings() {
+  const { data, isLoading } = useGetWaliSettingsQuery();
+  return { data, isLoading };
+}
+export function useWaliMutations() {
+  const [saveSettings] = usePatchWaliSettingsMutation();
+  const [updateLink] = useUpdateWaliLinkMutation();
+  const [setStatus] = useSetWaliStatusMutation();
+  const [resendInvite] = useResendWaliInviteMutation();
+  const [remove] = useRemoveWaliLinkMutation();
+  return {
+    saveSettings: wrap<Partial<WaliSettings>>(saveSettings),
+    updateLink: wrap<{ id: string } & Partial<WaliLink>>(updateLink),
+    setStatus: wrap<{ id: string; status: WaliStatus; reason?: string }>(setStatus),
+    resendInvite: wrap<string>(resendInvite),
+    remove: wrap<string>(remove),
   };
 }

@@ -18,6 +18,39 @@ export type GetUsersArgs = {
 // ── Support tickets / deletions / tasbih payload shapes ──────────
 export type TicketStatus = "open" | "pending" | "closed";
 
+// ── Wali (guardian) oversight ────────────────────────────────────
+export type WaliStatus = "pending" | "active" | "revoked" | "declined";
+
+export type WaliLink = {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail?: string | null;
+  userGender?: string | null;
+  waliName: string;
+  waliEmail: string;
+  waliPhone?: string | null;
+  relationship: string;
+  status: WaliStatus;
+  ccChats: boolean;
+  ccMatches: boolean;
+  approvalRequired: boolean;
+  lastCcAt?: string | null;
+  ccCount?: number;
+  invitedAt?: string | null;
+  acceptedAt?: string | null;
+  createdAt?: string | null;
+};
+
+export type WaliSettings = {
+  waliEnabled: boolean;
+  requireWaliForSisters: boolean;
+  ccAllChats: boolean;
+  ccDigestFrequency: "instant" | "daily" | "weekly";
+  waliApprovalForMatches: boolean;
+  inviteExpiryDays: number;
+};
+
 export type SupportTicket = {
   id: string;
   userId: string | null;
@@ -128,6 +161,7 @@ export const adminApi = createApi({
     "Tickets",
     "Deletions",
     "Tasbih",
+    "Wali",
   ],
   endpoints: (b) => ({
     // ── Users ──────────────────────────────────────────────
@@ -507,6 +541,37 @@ export const adminApi = createApi({
       }),
       invalidatesTags: ["Tasbih"],
     }),
+
+    // ── Wali (guardian) oversight ──────────────────────────
+    getWaliLinks: b.query<WaliLink[], { status?: string; search?: string } | void>({
+      query: (args) => ({ url: "/admin/wali", params: args ?? undefined }),
+      transformResponse: (res: any) => (Array.isArray(res) ? res : (res?.links ?? res?.results ?? [])),
+      providesTags: ["Wali"],
+    }),
+    getWaliSettings: b.query<WaliSettings, void>({
+      query: () => "/admin/wali/settings",
+      providesTags: ["Wali"],
+    }),
+    patchWaliSettings: b.mutation<unknown, Partial<WaliSettings>>({
+      query: (body) => ({ url: "/admin/wali/settings", method: "PATCH", body }),
+      invalidatesTags: ["Wali"],
+    }),
+    updateWaliLink: b.mutation<unknown, { id: string } & Partial<WaliLink>>({
+      query: ({ id, ...body }) => ({ url: `/admin/wali/${id}`, method: "PATCH", body }),
+      invalidatesTags: ["Wali"],
+    }),
+    setWaliStatus: b.mutation<unknown, { id: string; status: WaliStatus; reason?: string }>({
+      query: ({ id, ...body }) => ({ url: `/admin/wali/${id}/status`, method: "POST", body }),
+      invalidatesTags: ["Wali"],
+    }),
+    resendWaliInvite: b.mutation<unknown, string>({
+      query: (id) => ({ url: `/admin/wali/${id}/resend-invite`, method: "POST" }),
+      invalidatesTags: ["Wali"],
+    }),
+    removeWaliLink: b.mutation<unknown, string>({
+      query: (id) => ({ url: `/admin/wali/${id}`, method: "DELETE" }),
+      invalidatesTags: ["Wali"],
+    }),
   }),
 });
 
@@ -581,4 +646,11 @@ export const {
   useGetTasbihSettingsQuery,
   usePatchTasbihSettingsMutation,
   useAdjustTasbihStreakMutation,
+  useGetWaliLinksQuery,
+  useGetWaliSettingsQuery,
+  usePatchWaliSettingsMutation,
+  useUpdateWaliLinkMutation,
+  useSetWaliStatusMutation,
+  useResendWaliInviteMutation,
+  useRemoveWaliLinkMutation,
 } = adminApi;

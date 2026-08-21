@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WaliRouteImport } from './routes/wali'
 import { Route as UsersRouteImport } from './routes/users'
 import { Route as TicketsRouteImport } from './routes/tickets'
 import { Route as TasbihRouteImport } from './routes/tasbih'
@@ -31,6 +32,11 @@ import { Route as ChatsRouteImport } from './routes/chats'
 import { Route as AdsRouteImport } from './routes/ads'
 import { Route as IndexRouteImport } from './routes/index'
 
+const WaliRoute = WaliRouteImport.update({
+  id: '/wali',
+  path: '/wali',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UsersRoute = UsersRouteImport.update({
   id: '/users',
   path: '/users',
@@ -159,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/tasbih': typeof TasbihRoute
   '/tickets': typeof TicketsRoute
   '/users': typeof UsersRoute
+  '/wali': typeof WaliRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -182,6 +189,7 @@ export interface FileRoutesByTo {
   '/tasbih': typeof TasbihRoute
   '/tickets': typeof TicketsRoute
   '/users': typeof UsersRoute
+  '/wali': typeof WaliRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -206,6 +214,7 @@ export interface FileRoutesById {
   '/tasbih': typeof TasbihRoute
   '/tickets': typeof TicketsRoute
   '/users': typeof UsersRoute
+  '/wali': typeof WaliRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -231,6 +240,7 @@ export interface FileRouteTypes {
     | '/tasbih'
     | '/tickets'
     | '/users'
+    | '/wali'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -254,6 +264,7 @@ export interface FileRouteTypes {
     | '/tasbih'
     | '/tickets'
     | '/users'
+    | '/wali'
   id:
     | '__root__'
     | '/'
@@ -277,6 +288,7 @@ export interface FileRouteTypes {
     | '/tasbih'
     | '/tickets'
     | '/users'
+    | '/wali'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -301,10 +313,18 @@ export interface RootRouteChildren {
   TasbihRoute: typeof TasbihRoute
   TicketsRoute: typeof TicketsRoute
   UsersRoute: typeof UsersRoute
+  WaliRoute: typeof WaliRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/wali': {
+      id: '/wali'
+      path: '/wali'
+      fullPath: '/wali'
+      preLoaderRoute: typeof WaliRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/users': {
       id: '/users'
       path: '/users'
@@ -477,6 +497,7 @@ const rootRouteChildren: RootRouteChildren = {
   TasbihRoute: TasbihRoute,
   TicketsRoute: TicketsRoute,
   UsersRoute: UsersRoute,
+  WaliRoute: WaliRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
