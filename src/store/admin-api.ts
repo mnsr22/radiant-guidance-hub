@@ -508,6 +508,37 @@ export const adminApi = createApi({
       }),
       invalidatesTags: ["Tasbih"],
     }),
+
+    // ── Wali (guardian) oversight ──────────────────────────
+    getWaliLinks: b.query<WaliLink[], { status?: string; search?: string } | void>({
+      query: (args) => ({ url: "/admin/wali", params: args ?? undefined }),
+      transformResponse: (res: any) => (Array.isArray(res) ? res : (res?.links ?? res?.results ?? [])),
+      providesTags: ["Wali"],
+    }),
+    getWaliSettings: b.query<WaliSettings, void>({
+      query: () => "/admin/wali/settings",
+      providesTags: ["Wali"],
+    }),
+    patchWaliSettings: b.mutation<unknown, Partial<WaliSettings>>({
+      query: (body) => ({ url: "/admin/wali/settings", method: "PATCH", body }),
+      invalidatesTags: ["Wali"],
+    }),
+    updateWaliLink: b.mutation<unknown, { id: string } & Partial<WaliLink>>({
+      query: ({ id, ...body }) => ({ url: `/admin/wali/${id}`, method: "PATCH", body }),
+      invalidatesTags: ["Wali"],
+    }),
+    setWaliStatus: b.mutation<unknown, { id: string; status: WaliStatus; reason?: string }>({
+      query: ({ id, ...body }) => ({ url: `/admin/wali/${id}/status`, method: "POST", body }),
+      invalidatesTags: ["Wali"],
+    }),
+    resendWaliInvite: b.mutation<unknown, string>({
+      query: (id) => ({ url: `/admin/wali/${id}/resend-invite`, method: "POST" }),
+      invalidatesTags: ["Wali"],
+    }),
+    removeWaliLink: b.mutation<unknown, string>({
+      query: (id) => ({ url: `/admin/wali/${id}`, method: "DELETE" }),
+      invalidatesTags: ["Wali"],
+    }),
   }),
 });
 
