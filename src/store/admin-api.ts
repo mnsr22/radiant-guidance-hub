@@ -128,6 +128,7 @@ export const adminApi = createApi({
     "Tickets",
     "Deletions",
     "Tasbih",
+    "Wali",
   ],
   endpoints: (b) => ({
     // ── Users ──────────────────────────────────────────────
