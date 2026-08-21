@@ -18,6 +18,39 @@ export type GetUsersArgs = {
 // ── Support tickets / deletions / tasbih payload shapes ──────────
 export type TicketStatus = "open" | "pending" | "closed";
 
+// ── Wali (guardian) oversight ────────────────────────────────────
+export type WaliStatus = "pending" | "active" | "revoked" | "declined";
+
+export type WaliLink = {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail?: string | null;
+  userGender?: string | null;
+  waliName: string;
+  waliEmail: string;
+  waliPhone?: string | null;
+  relationship: string;
+  status: WaliStatus;
+  ccChats: boolean;
+  ccMatches: boolean;
+  approvalRequired: boolean;
+  lastCcAt?: string | null;
+  ccCount?: number;
+  invitedAt?: string | null;
+  acceptedAt?: string | null;
+  createdAt?: string | null;
+};
+
+export type WaliSettings = {
+  waliEnabled: boolean;
+  requireWaliForSisters: boolean;
+  ccAllChats: boolean;
+  ccDigestFrequency: "instant" | "daily" | "weekly";
+  waliApprovalForMatches: boolean;
+  inviteExpiryDays: number;
+};
+
 export type SupportTicket = {
   id: string;
   userId: string | null;
