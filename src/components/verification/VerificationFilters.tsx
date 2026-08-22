@@ -1,14 +1,14 @@
 import { useState } from 'react';
-import { Button } from '~/components/ui/button';
-import { Input } from '~/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '~/components/ui/select';
-import { Card, CardContent } from '~/components/ui/card';
+} from '@/components/ui/select';
+import { Card, CardContent } from '@/components/ui/card';
 
 export interface VerificationFiltersProps {
   onFilterChange: (filters: {
@@ -67,7 +67,7 @@ export function VerificationFilters({
 
           <div>
             <label className="text-sm font-medium block mb-2">Type</label>
-            <Select value={type} onValueChange={setType}>
+            <Select value={type} onValueChange={(v) => setType(v as 'identity' | 'phone' | '')}>
               <SelectTrigger>
                 <SelectValue placeholder="All types" />
               </SelectTrigger>

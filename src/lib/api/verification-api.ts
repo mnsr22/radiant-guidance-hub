@@ -1,4 +1,4 @@
-import type { VerificationStatus, AdminVerificationResponse, VerificationUser } from '~/types/verification';
+import type { VerificationStatus, AdminVerificationResponse, VerificationUser } from '@/types/verification';
 
 const API_BASE = process.env.VITE_API_URL || 'http://localhost:3000/api';
 

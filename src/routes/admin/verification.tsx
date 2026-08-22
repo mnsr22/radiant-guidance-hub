@@ -1,11 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
-import type { VerificationUser } from '~/types/verification';
-import { verificationApi } from '~/lib/api/verification-api';
-import { VerificationFilters } from '~/components/verification/VerificationFilters';
-import { VerificationQueueTable } from '~/components/verification/VerificationQueueTable';
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
-import { Button } from '~/components/ui/button';
+import type { VerificationUser } from '@/types/verification';
+import { verificationApi } from '@/lib/api/verification-api';
+import { VerificationFilters } from '@/components/verification/VerificationFilters';
+import { VerificationQueueTable } from '@/components/verification/VerificationQueueTable';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -49,7 +49,7 @@ function VerificationPage() {
     fetchVerifications();
   }, [fetchVerifications]);
 
-  const handleFilterChange = (newFilters: typeof filters) => {
+  const handleFilterChange = (newFilters: Partial<typeof filters>) => {
     setFilters((prev) => ({ ...prev, ...newFilters }));
     setPage(1);
   };
