@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { VerificationUser } from '~/types/verification';
+import type { VerificationUser } from '@/types/verification';
 import {
   Table,
   TableBody,
@@ -7,9 +7,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '~/components/ui/table';
-import { Button } from '~/components/ui/button';
-import { Badge } from '~/components/ui/badge';
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { VerificationDetailModal } from './VerificationDetailModal';
 
 const statusColors: Record<string, string> = {

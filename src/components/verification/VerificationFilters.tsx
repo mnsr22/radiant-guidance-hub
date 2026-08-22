@@ -1,14 +1,14 @@
 import { useState } from 'react';
-import { Button } from '~/components/ui/button';
-import { Input } from '~/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '~/components/ui/select';
-import { Card, CardContent } from '~/components/ui/card';
+} from '@/components/ui/select';
+import { Card, CardContent } from '@/components/ui/card';
 
 export interface VerificationFiltersProps {
   onFilterChange: (filters: {
