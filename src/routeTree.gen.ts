@@ -31,6 +31,7 @@ import { Route as DeleteAccountRouteImport } from './routes/delete-account'
 import { Route as ChatsRouteImport } from './routes/chats'
 import { Route as AdsRouteImport } from './routes/ads'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminVerificationRouteImport } from './routes/admin/verification'
 
 const WaliRoute = WaliRouteImport.update({
   id: '/wali',
@@ -142,6 +143,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminVerificationRoute = AdminVerificationRouteImport.update({
+  id: '/admin/verification',
+  path: '/admin/verification',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -166,6 +172,7 @@ export interface FileRoutesByFullPath {
   '/tickets': typeof TicketsRoute
   '/users': typeof UsersRoute
   '/wali': typeof WaliRoute
+  '/admin/verification': typeof AdminVerificationRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -190,6 +197,7 @@ export interface FileRoutesByTo {
   '/tickets': typeof TicketsRoute
   '/users': typeof UsersRoute
   '/wali': typeof WaliRoute
+  '/admin/verification': typeof AdminVerificationRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -215,6 +223,7 @@ export interface FileRoutesById {
   '/tickets': typeof TicketsRoute
   '/users': typeof UsersRoute
   '/wali': typeof WaliRoute
+  '/admin/verification': typeof AdminVerificationRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -241,6 +250,7 @@ export interface FileRouteTypes {
     | '/tickets'
     | '/users'
     | '/wali'
+    | '/admin/verification'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -265,6 +275,7 @@ export interface FileRouteTypes {
     | '/tickets'
     | '/users'
     | '/wali'
+    | '/admin/verification'
   id:
     | '__root__'
     | '/'
@@ -289,6 +300,7 @@ export interface FileRouteTypes {
     | '/tickets'
     | '/users'
     | '/wali'
+    | '/admin/verification'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -314,6 +326,7 @@ export interface RootRouteChildren {
   TicketsRoute: typeof TicketsRoute
   UsersRoute: typeof UsersRoute
   WaliRoute: typeof WaliRoute
+  AdminVerificationRoute: typeof AdminVerificationRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -472,6 +485,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/verification': {
+      id: '/admin/verification'
+      path: '/admin/verification'
+      fullPath: '/admin/verification'
+      preLoaderRoute: typeof AdminVerificationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -498,6 +518,7 @@ const rootRouteChildren: RootRouteChildren = {
   TicketsRoute: TicketsRoute,
   UsersRoute: UsersRoute,
   WaliRoute: WaliRoute,
+  AdminVerificationRoute: AdminVerificationRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
