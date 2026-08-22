@@ -241,11 +241,22 @@ function SubscriptionsTab({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-base">Active & past subscriptions ({subscriptions.length})</CardTitle>
-        <Button className="bg-gradient-primary" onClick={openAttach} disabled={plans.length === 0}>
-          <Link2 className="h-4 w-4 mr-2" /> Attach subscription
-        </Button>
+      <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <CardTitle className="text-base">Active &amp; past subscriptions ({filtered.length})</CardTitle>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search name, email, plan, city, status, price…"
+              className="pl-8 w-full md:w-80"
+            />
+          </div>
+          <Button className="bg-gradient-primary" onClick={openAttach} disabled={plans.length === 0}>
+            <Link2 className="h-4 w-4 mr-2" /> Attach subscription
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
@@ -271,7 +282,14 @@ function SubscriptionsTab({
                   </TableCell>
                 </TableRow>
               )}
-              {subscriptions.map((s) => (
+              {subscriptions.length > 0 && filtered.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={9} className="py-10 text-center text-muted-foreground">
+                    No subscriptions match “{search}”.
+                  </TableCell>
+                </TableRow>
+              )}
+              {filtered.map((s) => (
                 <TableRow key={s.id}>
                   <TableCell>
                     <div className="font-medium">{s.userName}</div>
