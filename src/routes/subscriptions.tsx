@@ -124,6 +124,23 @@ function SubscriptionsTab({
   const [del, setDel] = useState<Sub | null>(null);
   const [form, setForm] = useState(empty);
   const [busy, setBusy] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return subscriptions;
+    return subscriptions.filter((s) =>
+      [
+        s.userName, s.userEmail, s.gender, s.city, s.country, s.userStatus,
+        s.planName, s.tier, s.provider, s.status, s.interval,
+        money(s.priceCents, s.currency), `${(s.priceCents / 100).toFixed(2)}`,
+        dateStr(s.currentPeriodEnd), s.id, s.userId,
+        [s.city, s.country].filter(Boolean).join(", "),
+      ]
+        .filter(Boolean)
+        .some((v) => String(v).toLowerCase().includes(q)),
+    );
+  }, [subscriptions, search]);
 
   // ── Inline edit of the subscriber's user details ───────────────
   const userMut = useUserMutations();
