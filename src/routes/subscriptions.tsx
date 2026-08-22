@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { CreditCard, Package, Plus, Pencil, Trash2, Link2, UserCog } from "lucide-react";
+import { CreditCard, Package, Plus, Pencil, Trash2, Link2, UserCog, Search } from "lucide-react";
 import { AdminLayout, PageHeader } from "@/components/admin/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
