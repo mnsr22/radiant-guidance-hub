@@ -49,7 +49,7 @@ function VerificationPage() {
     fetchVerifications();
   }, [fetchVerifications]);
 
-  const handleFilterChange = (newFilters: typeof filters) => {
+  const handleFilterChange = (newFilters: Partial<typeof filters>) => {
     setFilters((prev) => ({ ...prev, ...newFilters }));
     setPage(1);
   };
