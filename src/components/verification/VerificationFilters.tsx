@@ -67,7 +67,7 @@ export function VerificationFilters({
 
           <div>
             <label className="text-sm font-medium block mb-2">Type</label>
-            <Select value={type} onValueChange={setType}>
+            <Select value={type} onValueChange={(v) => setType(v as 'identity' | 'phone' | '')}>
               <SelectTrigger>
                 <SelectValue placeholder="All types" />
               </SelectTrigger>

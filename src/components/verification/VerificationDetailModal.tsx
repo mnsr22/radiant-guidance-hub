@@ -172,7 +172,7 @@ export function VerificationDetailModal({
                 <div className="space-y-3 pt-4 border-t">
                   <div>
                     <Label htmlFor="phone-reason">Reason (if rejecting)</Label>
-                    <Select value={rejectionReason} onValueChange={setRejectionReason}>
+                    <Select value={rejectionReason} onValueChange={(v) => setRejectionReason(v as RejectionReason)}>
                       <SelectTrigger id="phone-reason" className="mt-1">
                         <SelectValue placeholder="Select reason" />
                       </SelectTrigger>
@@ -274,7 +274,7 @@ export function VerificationDetailModal({
                     <div className="space-y-3 pt-4 border-t">
                       <div>
                         <Label htmlFor="identity-reason">Reason (if rejecting/resubmitting)</Label>
-                        <Select value={rejectionReason} onValueChange={setRejectionReason}>
+                        <Select value={rejectionReason} onValueChange={(v) => setRejectionReason(v as RejectionReason)}>
                           <SelectTrigger id="identity-reason" className="mt-1">
                             <SelectValue placeholder="Select reason" />
                           </SelectTrigger>
