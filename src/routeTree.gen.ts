@@ -16,6 +16,7 @@ import { Route as TasbihRouteImport } from './routes/tasbih'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MonetizationRouteImport } from './routes/monetization'
@@ -66,6 +67,11 @@ const SubscriptionsRoute = SubscriptionsRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -165,6 +171,7 @@ export interface FileRoutesByFullPath {
   '/monetization': typeof MonetizationRoute
   '/notifications': typeof NotificationsRoute
   '/privacy': typeof PrivacyRoute
+  '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/support': typeof SupportRoute
@@ -190,6 +197,7 @@ export interface FileRoutesByTo {
   '/monetization': typeof MonetizationRoute
   '/notifications': typeof NotificationsRoute
   '/privacy': typeof PrivacyRoute
+  '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/support': typeof SupportRoute
@@ -216,6 +224,7 @@ export interface FileRoutesById {
   '/monetization': typeof MonetizationRoute
   '/notifications': typeof NotificationsRoute
   '/privacy': typeof PrivacyRoute
+  '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/support': typeof SupportRoute
@@ -243,6 +252,7 @@ export interface FileRouteTypes {
     | '/monetization'
     | '/notifications'
     | '/privacy'
+    | '/reports'
     | '/settings'
     | '/subscriptions'
     | '/support'
@@ -268,6 +278,7 @@ export interface FileRouteTypes {
     | '/monetization'
     | '/notifications'
     | '/privacy'
+    | '/reports'
     | '/settings'
     | '/subscriptions'
     | '/support'
@@ -293,6 +304,7 @@ export interface FileRouteTypes {
     | '/monetization'
     | '/notifications'
     | '/privacy'
+    | '/reports'
     | '/settings'
     | '/subscriptions'
     | '/support'
@@ -319,6 +331,7 @@ export interface RootRouteChildren {
   MonetizationRoute: typeof MonetizationRoute
   NotificationsRoute: typeof NotificationsRoute
   PrivacyRoute: typeof PrivacyRoute
+  ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRoute
   SubscriptionsRoute: typeof SubscriptionsRoute
   SupportRoute: typeof SupportRoute
@@ -378,6 +391,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -511,6 +531,7 @@ const rootRouteChildren: RootRouteChildren = {
   MonetizationRoute: MonetizationRoute,
   NotificationsRoute: NotificationsRoute,
   PrivacyRoute: PrivacyRoute,
+  ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRoute,
   SubscriptionsRoute: SubscriptionsRoute,
   SupportRoute: SupportRoute,

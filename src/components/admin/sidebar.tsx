@@ -1,8 +1,9 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, MessageSquare, Shield, Activity, Heart,
-  Settings, Moon, Bell, CreditCard, FileText, Sparkles, ChevronLeft, Send, Megaphone, Inbox, Receipt, CircleDot, LifeBuoy, ShieldCheck,
+  Settings, Moon, Bell, CreditCard, FileText, Sparkles, ChevronLeft, Send, Megaphone, Inbox, Receipt, CircleDot, LifeBuoy, ShieldCheck, BarChart3,
 } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
