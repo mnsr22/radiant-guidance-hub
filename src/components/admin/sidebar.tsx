@@ -24,7 +24,9 @@ export const adminNav = [
   { to: "/ads", label: "Ads & Promotions", icon: Megaphone },
   { to: "/monetization", label: "Monetization", icon: CreditCard },
   { to: "/subscriptions", label: "Subscriptions", icon: Receipt },
+  { to: "/reports", label: "Reports & Exports", icon: BarChart3 },
   { to: "/logs", label: "Audit Logs", icon: FileText },
+
   { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
 
