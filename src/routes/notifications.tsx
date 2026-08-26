@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Send, Bell } from "lucide-react";
+import { Send, Bell, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AdminLayout, PageHeader } from "@/components/admin/layout";
 import { Card } from "@/components/ui/card";
@@ -23,6 +23,7 @@ import {
   useUsers,
 } from "@/lib/admin-hooks";
 import { Checkbox } from "@/components/ui/checkbox";
+import { generateNotificationCopy } from "@/lib/ai.functions";
 import { X, Search } from "lucide-react";
 
 export const Route = createFileRoute("/notifications")({ component: NotificationsPage });
@@ -57,6 +58,33 @@ function NotificationsPage() {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
+
+  // AI copy assistant
+  const [brief, setBrief] = useState("");
+  const [aiBusy, setAiBusy] = useState(false);
+  const [ideas, setIdeas] = useState<{ title: string; body: string }[]>([]);
+
+  async function generateCopy() {
+    if (brief.trim().length < 3) {
+      toast.error("Describe the notification first (e.g. \"Ramadan starts in 3 days\")");
+      return;
+    }
+    setAiBusy(true);
+    try {
+      const res = await generateNotificationCopy({
+        data: {
+          brief: brief.trim(),
+          audience: mode === "segment" ? audienceLabel[audience] : "selected members",
+          count: 3,
+        },
+      });
+      setIdeas(res.suggestions);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "AI copy generation failed");
+    } finally {
+      setAiBusy(false);
+    }
+  }
 
   // Recipient picker (mode === "users")
   const [search, setSearch] = useState("");
@@ -257,6 +285,41 @@ function NotificationsPage() {
                 </p>
               </div>
             )}
+            <div className="rounded-lg border bg-muted/20 p-3 space-y-2">
+              <Label className="text-xs flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-primary" /> AI copywriter
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Ramadan starts in 3 days — encourage duas and profile updates"
+                  value={brief}
+                  onChange={(e) => setBrief(e.target.value)}
+                  maxLength={300}
+                />
+                <Button type="button" variant="outline" disabled={aiBusy} onClick={generateCopy}>
+                  {aiBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Generate"}
+                </Button>
+              </div>
+              {ideas.length > 0 && (
+                <div className="space-y-1.5">
+                  {ideas.map((s, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => { setTitle(s.title); setBody(s.body); toast.success("Copy applied — edit before sending"); }}
+                      className="w-full text-left rounded-md border bg-background px-3 py-2 hover:border-primary transition-colors"
+                    >
+                      <div className="text-sm font-medium">{s.title}</div>
+                      <div className="text-xs text-muted-foreground">{s.body}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <p className="text-[11px] text-muted-foreground">
+                Drafts are suggestions — review and edit before sending.
+              </p>
+            </div>
+
             <div>
               <Label className="text-xs">Title</Label>
               <Input
