@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
-  LifeBuoy, Search, Download, Send, CheckCircle2, Clock, Trash2, ShieldAlert,
+  LifeBuoy, Search, Download, Send, CheckCircle2, Clock, Trash2, ShieldAlert, Sparkles, Loader2,
 } from "lucide-react";
 import { AdminLayout, PageHeader } from "@/components/admin/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -26,6 +26,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { downloadCSV } from "@/lib/csv";
+import { suggestSupportReply } from "@/lib/ai.functions";
 import {
   useTickets, useTicket, useTicketMutations,
   useDeletionRequests, useDeletionMutations,
@@ -375,7 +376,13 @@ function TicketDialog({ id, onClose }: { id: string | null; onClose: () => void 
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="reply">Reply</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="reply">Reply</Label>
+                <Button type="button" variant="outline" size="sm" disabled={aiBusy} onClick={suggest}>
+                  {aiBusy ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5 mr-1.5 text-primary" />}
+                  {aiBusy ? "Drafting…" : "Suggest with AI"}
+                </Button>
+              </div>
               <Textarea
                 id="reply"
                 value={body}
@@ -384,6 +391,12 @@ function TicketDialog({ id, onClose }: { id: string | null; onClose: () => void 
                 className="min-h-24"
                 maxLength={4000}
               />
+              {aiNote && (
+                <p className={`text-[11px] ${aiNote.handoff ? "text-amber-600" : "text-muted-foreground"}`}>
+                  {aiNote.handoff ? "Human review needed: " : "AI note: "}
+                  {aiNote.reason || (aiNote.handoff ? "This request needs an admin decision." : "Draft is ready to review.")}
+                </p>
+              )}
             </div>
           </div>
         )}
