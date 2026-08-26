@@ -277,6 +277,32 @@ function TicketDialog({ id, onClose }: { id: string | null; onClose: () => void 
   const { reply, setStatus } = useTicketMutations();
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiNote, setAiNote] = useState<{ handoff: boolean; reason: string } | null>(null);
+
+  async function suggest() {
+    if (!data) return;
+    setAiBusy(true);
+    setAiNote(null);
+    try {
+      const res = await suggestSupportReply({
+        data: {
+          subject: data.subject,
+          message: data.message,
+          category: data.category,
+          history: (data.replies ?? []).map((r) => ({ fromAdmin: r.fromAdmin, body: r.body })),
+        },
+      });
+      setBody(res.reply);
+      setAiNote({ handoff: res.handoff, reason: res.reason });
+      toast.success(res.handoff ? "Draft ready — needs a human decision" : "Draft ready");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "AI suggestion failed");
+    } finally {
+      setAiBusy(false);
+    }
+  }
+
 
   function send(close: boolean) {
     if (!id) return;
