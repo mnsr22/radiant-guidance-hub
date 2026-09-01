@@ -18,6 +18,7 @@ import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as PhotosRouteImport } from './routes/photos'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MonetizationRouteImport } from './routes/monetization'
 import { Route as ModerationRouteImport } from './routes/moderation'
@@ -78,6 +79,11 @@ const ReportsRoute = ReportsRouteImport.update({
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PhotosRoute = PhotosRouteImport.update({
+  id: '/photos',
+  path: '/photos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NotificationsRoute = NotificationsRouteImport.update({
@@ -177,6 +183,7 @@ export interface FileRoutesByFullPath {
   '/moderation': typeof ModerationRoute
   '/monetization': typeof MonetizationRoute
   '/notifications': typeof NotificationsRoute
+  '/photos': typeof PhotosRoute
   '/privacy': typeof PrivacyRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
@@ -204,6 +211,7 @@ export interface FileRoutesByTo {
   '/moderation': typeof ModerationRoute
   '/monetization': typeof MonetizationRoute
   '/notifications': typeof NotificationsRoute
+  '/photos': typeof PhotosRoute
   '/privacy': typeof PrivacyRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
@@ -232,6 +240,7 @@ export interface FileRoutesById {
   '/moderation': typeof ModerationRoute
   '/monetization': typeof MonetizationRoute
   '/notifications': typeof NotificationsRoute
+  '/photos': typeof PhotosRoute
   '/privacy': typeof PrivacyRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
@@ -261,6 +270,7 @@ export interface FileRouteTypes {
     | '/moderation'
     | '/monetization'
     | '/notifications'
+    | '/photos'
     | '/privacy'
     | '/reports'
     | '/settings'
@@ -288,6 +298,7 @@ export interface FileRouteTypes {
     | '/moderation'
     | '/monetization'
     | '/notifications'
+    | '/photos'
     | '/privacy'
     | '/reports'
     | '/settings'
@@ -315,6 +326,7 @@ export interface FileRouteTypes {
     | '/moderation'
     | '/monetization'
     | '/notifications'
+    | '/photos'
     | '/privacy'
     | '/reports'
     | '/settings'
@@ -343,6 +355,7 @@ export interface RootRouteChildren {
   ModerationRoute: typeof ModerationRoute
   MonetizationRoute: typeof MonetizationRoute
   NotificationsRoute: typeof NotificationsRoute
+  PhotosRoute: typeof PhotosRoute
   PrivacyRoute: typeof PrivacyRoute
   ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRoute
@@ -418,6 +431,13 @@ declare module '@tanstack/react-router' {
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/photos': {
+      id: '/photos'
+      path: '/photos'
+      fullPath: '/photos'
+      preLoaderRoute: typeof PhotosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/notifications': {
@@ -551,6 +571,7 @@ const rootRouteChildren: RootRouteChildren = {
   ModerationRoute: ModerationRoute,
   MonetizationRoute: MonetizationRoute,
   NotificationsRoute: NotificationsRoute,
+  PhotosRoute: PhotosRoute,
   PrivacyRoute: PrivacyRoute,
   ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRoute,
