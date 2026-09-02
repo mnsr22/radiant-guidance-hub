@@ -27,8 +27,15 @@ function LoginPage() {
       toast.success(`Welcome, ${user.name}`);
       navigate({ to: "/" });
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "Login failed";
-      toast.error(msg);
+      // ApiError now also covers timeouts and unreachable-host failures, so the
+      // toast says what actually went wrong instead of a blanket "Login failed".
+      const msg =
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error && err.message
+            ? err.message
+            : "Login failed";
+      toast.error(msg, { duration: 8000 });
     } finally {
       setLoading(false);
     }

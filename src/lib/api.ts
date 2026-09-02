@@ -16,6 +16,10 @@ export const SOCKET_URL = BASE_URL.replace(/\/api$/, "");
 
 const TOKEN_KEY = "halal_admin_token";
 
+/// Hard ceiling on any single API call so the UI always resolves one way or
+/// the other, rather than spinning indefinitely.
+const REQUEST_TIMEOUT_MS = 15_000;
+
 export function getToken(): string | null {
   if (typeof localStorage === "undefined") return null;
   return localStorage.getItem(TOKEN_KEY);
@@ -77,11 +81,35 @@ export async function api<T = unknown>(path: string, opts: ApiOptions = {}): Pro
     if (token) headers.Authorization = `Bearer ${token}`;
   }
 
-  const res = await fetch(url.toString(), {
-    method,
-    headers,
-    body: body == null ? undefined : JSON.stringify(body),
-  });
+  // Without a timeout a stalled connection never settles, so the caller's
+  // `finally` never runs and the UI spins forever with no error shown.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  let res: Response;
+  try {
+    res = await fetch(url.toString(), {
+      method,
+      headers,
+      body: body == null ? undefined : JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    // fetch rejects for aborts and for network/DNS/TLS/CORS failures — none of
+    // which are ApiErrors, so these previously surfaced as a bare "Login failed".
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new ApiError(
+        0,
+        `No response from ${BASE_URL} within ${REQUEST_TIMEOUT_MS / 1000}s. Is the backend running?`,
+      );
+    }
+    throw new ApiError(
+      0,
+      `Cannot reach the server at ${BASE_URL}. Check the backend is running and VITE_API_URL is correct.`,
+    );
+  } finally {
+    clearTimeout(timer);
+  }
 
   // 401/403 on an authenticated call → session is dead/insufficient. Login
   // failures (auth: false) must not be treated as an expired session.
@@ -90,7 +118,19 @@ export async function api<T = unknown>(path: string, opts: ApiOptions = {}): Pro
   }
 
   const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
+  let data: any = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      // A proxy error page, an SPA index.html, or a wrong base URL lands here;
+      // an unhandled SyntaxError used to mask the real status.
+      throw new ApiError(
+        res.status,
+        `Expected JSON from ${url.pathname} but got ${res.status} ${res.statusText || "non-JSON response"}. Check VITE_API_URL.`,
+      );
+    }
+  }
 
   if (!res.ok) {
     const message =

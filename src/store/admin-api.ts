@@ -122,6 +122,9 @@ export type TasbihSettings = {
 
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: BASE_URL,
+  // Same reason as lib/api.ts: with no timeout a stalled request leaves every
+  // hook pinned at isLoading forever, so the page shows a skeleton and no error.
+  timeout: 15_000,
   prepareHeaders: (headers) => {
     const token = getToken();
     if (token) headers.set("Authorization", `Bearer ${token}`);
@@ -447,7 +450,7 @@ export const adminApi = createApi({
     }),
     replyTicket: b.mutation<unknown, { id: string; body: string; close?: boolean }>({
       query: ({ id, body, close }) => ({
-        url: `/admin/support/tickets/${id}/reply`,
+        url: `/admin/support/tickets/${id}/replies`,
         method: "POST",
         body: { body, close: close ?? false },
       }),
@@ -455,7 +458,7 @@ export const adminApi = createApi({
     }),
     updateTicketStatus: b.mutation<unknown, { id: string; status: TicketStatus }>({
       query: ({ id, status }) => ({
-        url: `/admin/support/tickets/${id}/status`,
+        url: `/admin/support/tickets/${id}`,
         method: "PATCH",
         body: { status },
       }),
@@ -545,7 +548,8 @@ export const adminApi = createApi({
     // ── Wali (guardian) oversight ──────────────────────────
     getWaliLinks: b.query<WaliLink[], { status?: string; search?: string } | void>({
       query: (args) => ({ url: "/admin/wali", params: args ?? undefined }),
-      transformResponse: (res: any) => (Array.isArray(res) ? res : (res?.links ?? res?.results ?? [])),
+      transformResponse: (res: any) =>
+        Array.isArray(res) ? res : (res?.data ?? res?.links ?? res?.results ?? []),
       providesTags: ["Wali"],
     }),
     getWaliSettings: b.query<WaliSettings, void>({

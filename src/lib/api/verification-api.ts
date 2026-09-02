@@ -1,6 +1,18 @@
 import type { VerificationStatus, AdminVerificationResponse, VerificationUser } from '@/types/verification';
+import { BASE_URL, getToken } from '@/lib/api';
 
-const API_BASE = process.env.VITE_API_URL || 'http://localhost:3000/api';
+// Origin and token both come from lib/api so this client can't drift from the
+// rest of the dashboard — it previously read `process.env` (undefined in a Vite
+// bundle, so every call went to localhost) and a token key nothing ever wrote.
+const API_BASE = BASE_URL;
+
+function authHeaders(): Record<string, string> {
+  const token = getToken();
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
 
 export const verificationApi = {
   /**
@@ -9,10 +21,7 @@ export const verificationApi = {
   getUserVerification: async (userId: string): Promise<VerificationStatus> => {
     const response = await fetch(`${API_BASE}/admin/users/${userId}/verification`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('adminToken')}`,
-      },
+      headers: authHeaders(),
     });
 
     if (!response.ok) {
@@ -25,26 +34,25 @@ export const verificationApi = {
   /**
    * Get all users pending verification
    */
-  getPendingVerifications: async (
-    type?: 'phone' | 'identity',
-    limit = 50,
-    offset = 0
-  ): Promise<{ users: VerificationUser[]; total: number }> => {
+  getPendingVerifications: async (opts: {
+    type?: 'phone' | 'identity';
+    status?: string;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  } = {}): Promise<{ users: VerificationUser[]; total: number }> => {
     const params = new URLSearchParams({
-      limit: String(limit),
-      offset: String(offset),
+      limit: String(opts.limit ?? 50),
+      offset: String(opts.offset ?? 0),
     });
 
-    if (type) {
-      params.append('type', type);
-    }
+    if (opts.type) params.append('type', opts.type);
+    if (opts.status) params.append('status', opts.status);
+    if (opts.search) params.append('search', opts.search);
 
     const response = await fetch(`${API_BASE}/admin/verifications/pending?${params}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('adminToken')}`,
-      },
+      headers: authHeaders(),
     });
 
     if (!response.ok) {
@@ -64,10 +72,7 @@ export const verificationApi = {
   ): Promise<AdminVerificationResponse> => {
     const response = await fetch(`${API_BASE}/admin/users/${userId}/verification/phone`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('adminToken')}`,
-      },
+      headers: authHeaders(),
       body: JSON.stringify({ status, reason }),
     });
 
@@ -88,10 +93,7 @@ export const verificationApi = {
   ): Promise<AdminVerificationResponse> => {
     const response = await fetch(`${API_BASE}/admin/users/${userId}/verification/identity`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('adminToken')}`,
-      },
+      headers: authHeaders(),
       body: JSON.stringify({ status, reason }),
     });
 
@@ -108,10 +110,7 @@ export const verificationApi = {
   getVerificationAuditHistory: async (userId: string) => {
     const response = await fetch(`${API_BASE}/admin/users/${userId}/verification/audit`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('adminToken')}`,
-      },
+      headers: authHeaders(),
     });
 
     if (!response.ok) {

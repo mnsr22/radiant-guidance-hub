@@ -30,11 +30,13 @@ function VerificationPage() {
     try {
       setLoading(true);
       const offset = (page - 1) * ITEMS_PER_PAGE;
-      const result = await verificationApi.getPendingVerifications(
-        filters.type,
-        ITEMS_PER_PAGE,
-        offset
-      );
+      const result = await verificationApi.getPendingVerifications({
+        type: filters.type,
+        status: filters.status,
+        search: filters.search,
+        limit: ITEMS_PER_PAGE,
+        offset,
+      });
       setUsers(result.users);
       setTotal(result.total);
     } catch (error) {
@@ -43,7 +45,7 @@ function VerificationPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, filters.type]);
+  }, [page, filters.type, filters.status, filters.search]);
 
   useEffect(() => {
     fetchVerifications();
