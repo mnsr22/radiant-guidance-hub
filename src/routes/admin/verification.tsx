@@ -4,7 +4,9 @@ import type { VerificationUser } from '@/types/verification';
 import { verificationApi } from '@/lib/api/verification-api';
 import { VerificationFilters } from '@/components/verification/VerificationFilters';
 import { VerificationQueueTable } from '@/components/verification/VerificationQueueTable';
+import { AdminLayout } from '@/components/admin/layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
@@ -57,12 +59,13 @@ function VerificationPage() {
   const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
 
   return (
-    <div className="space-y-6 p-6">
+    <AdminLayout>
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Verification Queue</h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-muted-foreground mt-1">
             Review and approve user phone and identity verifications
           </p>
         </div>
@@ -79,6 +82,7 @@ function VerificationPage() {
           Refresh
         </Button>
       </div>
+
 
       {/* Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -157,5 +161,7 @@ function VerificationPage() {
         </div>
       )}
     </div>
+    </AdminLayout>
   );
+
 }
