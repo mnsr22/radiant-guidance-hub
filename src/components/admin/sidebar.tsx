@@ -2,6 +2,7 @@ import { Link, useLocation } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, MessageSquare, Shield, Activity, Heart,
   Settings, Moon, Bell, CreditCard, FileText, Sparkles, ChevronLeft, Send, Megaphone, Inbox, Receipt, CircleDot, LifeBuoy, ShieldCheck, BarChart3,
+  TrendingUp, Images, HeartHandshake, TicketPercent, BadgeCheck,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -9,14 +10,18 @@ import { Button } from "@/components/ui/button";
 
 export const adminNav = [
   { to: "/", label: "Overview", icon: LayoutDashboard },
+  { to: "/analytics", label: "Analytics", icon: TrendingUp },
   { to: "/users", label: "Users", icon: Users },
+  { to: "/admin/verification", label: "Verification", icon: BadgeCheck },
   { to: "/chats", label: "Chat Monitoring", icon: MessageSquare },
   { to: "/messaging", label: "Messaging", icon: Send },
   { to: "/support", label: "Support Inbox", icon: Inbox },
   { to: "/tickets", label: "Support Tickets", icon: LifeBuoy },
   { to: "/moderation", label: "Moderation", icon: Shield },
+  { to: "/photos", label: "Photo Moderation", icon: Images },
   { to: "/live", label: "Live Activity", icon: Activity },
   { to: "/matches", label: "Matches", icon: Heart },
+  { to: "/journey", label: "Marriage Journey", icon: HeartHandshake },
   { to: "/islamic", label: "Islamic Features", icon: Moon },
   { to: "/wali", label: "Wali Oversight", icon: ShieldCheck },
   { to: "/tasbih", label: "Tasbih & Streaks", icon: CircleDot },
@@ -24,11 +29,13 @@ export const adminNav = [
   { to: "/ads", label: "Ads & Promotions", icon: Megaphone },
   { to: "/monetization", label: "Monetization", icon: CreditCard },
   { to: "/subscriptions", label: "Subscriptions", icon: Receipt },
+  { to: "/discounts", label: "Discount Codes", icon: TicketPercent },
   { to: "/reports", label: "Reports & Exports", icon: BarChart3 },
   { to: "/logs", label: "Audit Logs", icon: FileText },
 
   { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
+
 
 export function SidebarNav({
   collapsed = false,

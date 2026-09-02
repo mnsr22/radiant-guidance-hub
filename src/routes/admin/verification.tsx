@@ -57,12 +57,13 @@ function VerificationPage() {
   const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
 
   return (
-    <div className="space-y-6 p-6">
+    <AdminLayout>
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Verification Queue</h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-muted-foreground mt-1">
             Review and approve user phone and identity verifications
           </p>
         </div>
@@ -79,6 +80,7 @@ function VerificationPage() {
           Refresh
         </Button>
       </div>
+
 
       {/* Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

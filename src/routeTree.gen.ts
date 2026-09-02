@@ -27,8 +27,10 @@ import { Route as MatchesRouteImport } from './routes/matches'
 import { Route as LogsRouteImport } from './routes/logs'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LiveRouteImport } from './routes/live'
+import { Route as JourneyRouteImport } from './routes/journey'
 import { Route as IslamicRouteImport } from './routes/islamic'
 import { Route as HelpRouteImport } from './routes/help'
+import { Route as DiscountsRouteImport } from './routes/discounts'
 import { Route as DeleteAccountRouteImport } from './routes/delete-account'
 import { Route as ChatsRouteImport } from './routes/chats'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
@@ -126,6 +128,11 @@ const LiveRoute = LiveRouteImport.update({
   path: '/live',
   getParentRoute: () => rootRouteImport,
 } as any)
+const JourneyRoute = JourneyRouteImport.update({
+  id: '/journey',
+  path: '/journey',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IslamicRoute = IslamicRouteImport.update({
   id: '/islamic',
   path: '/islamic',
@@ -134,6 +141,11 @@ const IslamicRoute = IslamicRouteImport.update({
 const HelpRoute = HelpRouteImport.update({
   id: '/help',
   path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DiscountsRoute = DiscountsRouteImport.update({
+  id: '/discounts',
+  path: '/discounts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DeleteAccountRoute = DeleteAccountRouteImport.update({
@@ -173,8 +185,10 @@ export interface FileRoutesByFullPath {
   '/analytics': typeof AnalyticsRoute
   '/chats': typeof ChatsRoute
   '/delete-account': typeof DeleteAccountRoute
+  '/discounts': typeof DiscountsRoute
   '/help': typeof HelpRoute
   '/islamic': typeof IslamicRoute
+  '/journey': typeof JourneyRoute
   '/live': typeof LiveRoute
   '/login': typeof LoginRoute
   '/logs': typeof LogsRoute
@@ -201,8 +215,10 @@ export interface FileRoutesByTo {
   '/analytics': typeof AnalyticsRoute
   '/chats': typeof ChatsRoute
   '/delete-account': typeof DeleteAccountRoute
+  '/discounts': typeof DiscountsRoute
   '/help': typeof HelpRoute
   '/islamic': typeof IslamicRoute
+  '/journey': typeof JourneyRoute
   '/live': typeof LiveRoute
   '/login': typeof LoginRoute
   '/logs': typeof LogsRoute
@@ -230,8 +246,10 @@ export interface FileRoutesById {
   '/analytics': typeof AnalyticsRoute
   '/chats': typeof ChatsRoute
   '/delete-account': typeof DeleteAccountRoute
+  '/discounts': typeof DiscountsRoute
   '/help': typeof HelpRoute
   '/islamic': typeof IslamicRoute
+  '/journey': typeof JourneyRoute
   '/live': typeof LiveRoute
   '/login': typeof LoginRoute
   '/logs': typeof LogsRoute
@@ -260,8 +278,10 @@ export interface FileRouteTypes {
     | '/analytics'
     | '/chats'
     | '/delete-account'
+    | '/discounts'
     | '/help'
     | '/islamic'
+    | '/journey'
     | '/live'
     | '/login'
     | '/logs'
@@ -288,8 +308,10 @@ export interface FileRouteTypes {
     | '/analytics'
     | '/chats'
     | '/delete-account'
+    | '/discounts'
     | '/help'
     | '/islamic'
+    | '/journey'
     | '/live'
     | '/login'
     | '/logs'
@@ -316,8 +338,10 @@ export interface FileRouteTypes {
     | '/analytics'
     | '/chats'
     | '/delete-account'
+    | '/discounts'
     | '/help'
     | '/islamic'
+    | '/journey'
     | '/live'
     | '/login'
     | '/logs'
@@ -345,8 +369,10 @@ export interface RootRouteChildren {
   AnalyticsRoute: typeof AnalyticsRoute
   ChatsRoute: typeof ChatsRoute
   DeleteAccountRoute: typeof DeleteAccountRoute
+  DiscountsRoute: typeof DiscountsRoute
   HelpRoute: typeof HelpRoute
   IslamicRoute: typeof IslamicRoute
+  JourneyRoute: typeof JourneyRoute
   LiveRoute: typeof LiveRoute
   LoginRoute: typeof LoginRoute
   LogsRoute: typeof LogsRoute
@@ -496,6 +522,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LiveRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/journey': {
+      id: '/journey'
+      path: '/journey'
+      fullPath: '/journey'
+      preLoaderRoute: typeof JourneyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/islamic': {
       id: '/islamic'
       path: '/islamic'
@@ -508,6 +541,13 @@ declare module '@tanstack/react-router' {
       path: '/help'
       fullPath: '/help'
       preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/discounts': {
+      id: '/discounts'
+      path: '/discounts'
+      fullPath: '/discounts'
+      preLoaderRoute: typeof DiscountsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/delete-account': {
@@ -561,8 +601,10 @@ const rootRouteChildren: RootRouteChildren = {
   AnalyticsRoute: AnalyticsRoute,
   ChatsRoute: ChatsRoute,
   DeleteAccountRoute: DeleteAccountRoute,
+  DiscountsRoute: DiscountsRoute,
   HelpRoute: HelpRoute,
   IslamicRoute: IslamicRoute,
+  JourneyRoute: JourneyRoute,
   LiveRoute: LiveRoute,
   LoginRoute: LoginRoute,
   LogsRoute: LogsRoute,
