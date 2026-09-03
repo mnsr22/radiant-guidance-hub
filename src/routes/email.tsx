@@ -117,7 +117,7 @@ function EmailPage() {
         .split(/[,\n;\s]+/)
         .map((e) => e.trim())
         .filter((e) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e))
-        .map((email) => ({ email })),
+        .map((email) => ({ email, name: undefined as string | undefined })),
     [manual],
   );
 
