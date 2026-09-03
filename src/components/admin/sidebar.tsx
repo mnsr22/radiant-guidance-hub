@@ -1,8 +1,9 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, MessageSquare, Shield, Activity, Heart,
-  Settings, Moon, Bell, CreditCard, FileText, Sparkles, ChevronLeft, Send, Megaphone, Inbox, Receipt, CircleDot, LifeBuoy, ShieldCheck, BarChart3,
+  Settings, Moon, Bell, CreditCard, FileText, Sparkles, ChevronLeft, Send, Megaphone, Inbox, Receipt, CircleDot, LifeBuoy, ShieldCheck, BarChart3, Mail,
 } from "lucide-react";
+
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,8 @@ export const adminNav = [
   { to: "/users", label: "Users", icon: Users },
   { to: "/chats", label: "Chat Monitoring", icon: MessageSquare },
   { to: "/messaging", label: "Messaging", icon: Send },
+  { to: "/email", label: "Email Campaigns", icon: Mail },
+
   { to: "/support", label: "Support Inbox", icon: Inbox },
   { to: "/tickets", label: "Support Tickets", icon: LifeBuoy },
   { to: "/moderation", label: "Moderation", icon: Shield },
