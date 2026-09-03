@@ -51,7 +51,7 @@ export const sendAdminEmail = createServerFn({ method: "POST" })
             "X-Connection-Api-Key": resendKey,
           },
           body: JSON.stringify({
-            from: "Halal Connect <onboarding@resend.dev>",
+            from: "Halal Connect <team@halalconnect.space>",
             to: [recipient.email],
             subject: data.subject,
             html,
