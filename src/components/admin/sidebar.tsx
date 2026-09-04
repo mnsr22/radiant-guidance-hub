@@ -1,16 +1,20 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, MessageSquare, Shield, Activity, Heart,
-  Settings, Moon, Bell, CreditCard, FileText, Sparkles, ChevronLeft, Send, Megaphone, Inbox, Receipt, CircleDot, LifeBuoy, ShieldCheck, BarChart3, Mail,
+  Settings, Moon, Bell, CreditCard, FileText, ChevronLeft, Send, Megaphone, Inbox, Receipt, CircleDot, LifeBuoy, ShieldCheck, BarChart3, Mail, BadgeCheck, Images, ClipboardCheck, TicketPercent, LineChart,
 } from "lucide-react";
 
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import logo from "@/assets/halal-connect-logo.png";
 
 export const adminNav = [
   { to: "/", label: "Overview", icon: LayoutDashboard },
+  { to: "/analytics", label: "Analytics", icon: LineChart },
   { to: "/users", label: "Users", icon: Users },
+  { to: "/admin/verification", label: "Verification Queue", icon: BadgeCheck },
+  { to: "/photos", label: "Photo Moderation", icon: Images },
   { to: "/chats", label: "Chat Monitoring", icon: MessageSquare },
   { to: "/messaging", label: "Messaging", icon: Send },
   { to: "/email", label: "Email Campaigns", icon: Mail },
@@ -20,6 +24,7 @@ export const adminNav = [
   { to: "/moderation", label: "Moderation", icon: Shield },
   { to: "/live", label: "Live Activity", icon: Activity },
   { to: "/matches", label: "Matches", icon: Heart },
+  { to: "/journey", label: "Marriage Journey", icon: ClipboardCheck },
   { to: "/islamic", label: "Islamic Features", icon: Moon },
   { to: "/wali", label: "Wali Oversight", icon: ShieldCheck },
   { to: "/tasbih", label: "Tasbih & Streaks", icon: CircleDot },
@@ -27,6 +32,7 @@ export const adminNav = [
   { to: "/ads", label: "Ads & Promotions", icon: Megaphone },
   { to: "/monetization", label: "Monetization", icon: CreditCard },
   { to: "/subscriptions", label: "Subscriptions", icon: Receipt },
+  { to: "/discounts", label: "Discount Codes", icon: TicketPercent },
   { to: "/reports", label: "Reports & Exports", icon: BarChart3 },
   { to: "/logs", label: "Audit Logs", icon: FileText },
 
