@@ -1,3 +1,29 @@
+// Branded Halal Connect email renderer.
+// Personalisation is applied to every text field (subject, heading, preheader,
+// body, CTA) so a `{{name}}` token can never leak into a delivered email.
+
+/** Absolute logo URL — email clients cannot load bundled/relative assets. */
+export const EMAIL_LOGO_URL = "https://halalconnect.space/halal-connect-logo.png";
+
+/** Fallback used when a member has not set up their name yet. */
+export const DEFAULT_GREETING_NAME = "there";
+
+/** First name if we have a usable one, otherwise a warm generic greeting. */
+export function greetingName(name?: string | null) {
+  const clean = (name ?? "").trim().replace(/\s+/g, " ");
+  if (!clean) return DEFAULT_GREETING_NAME;
+  // Ignore placeholders/emails that some records carry instead of a real name.
+  if (clean.includes("@") || /^(user|member|unknown|n\/?a)$/i.test(clean)) {
+    return DEFAULT_GREETING_NAME;
+  }
+  return clean.split(" ")[0];
+}
+
+/** Replace every {{name}} / {{ name }} token with a safe display name. */
+export function personalise(text: string, name?: string | null) {
+  return text.replace(/\{\{\s*name\s*\}\}/gi, greetingName(name));
+}
+
 function escapeHtml(value: string) {
   return value
     .replace(/&/g, "&amp;")
@@ -6,9 +32,8 @@ function escapeHtml(value: string) {
     .replace(/"/g, "&quot;");
 }
 
-function paragraphs(body: string, name?: string) {
-  const personalised = body.replace(/\{\{\s*name\s*\}\}/g, name ?? "there");
-  return personalised
+function paragraphs(body: string, name?: string | null) {
+  return personalise(body, name)
     .split(/\n{2,}/)
     .map(
       (p) =>
@@ -29,37 +54,52 @@ export function renderEmailHtml(input: {
   preheader?: string;
   name?: string;
 }) {
-  const content = paragraphs(input.body, input.name);
+  const name = input.name;
+  const subject = personalise(input.subject, name);
+  const heading = personalise(input.heading ?? input.subject, name);
+  const preheader = personalise(input.preheader ?? input.subject, name);
+  const ctaLabel = input.ctaLabel ? personalise(input.ctaLabel, name) : undefined;
+  const content = paragraphs(input.body, name);
+
   if (input.template === "plain") {
-    return `<div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;padding:24px;">${content}<p style="font-size:12px;color:#8b83a0;margin-top:24px;">Halal Connect</p></div>`;
+    return `<div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;padding:24px;">${content}
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:24px;"><tr>
+<td style="padding-right:8px;"><img src="${EMAIL_LOGO_URL}" width="28" height="28" alt="Halal Connect" style="display:block;border:0;"/></td>
+<td style="font-size:12px;color:#8b83a0;font-family:Arial,Helvetica,sans-serif;">Halal Connect</td>
+</tr></table></div>`;
   }
 
   const cta =
-    input.ctaLabel && input.ctaUrl
+    ctaLabel && input.ctaUrl
       ? `<tr><td style="padding:8px 32px 32px;"><a href="${escapeHtml(
           input.ctaUrl,
         )}" style="display:inline-block;background:#6d28d9;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:13px 26px;border-radius:10px;">${escapeHtml(
-          input.ctaLabel,
+          ctaLabel,
         )}</a></td></tr>`
       : "";
 
   return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${escapeHtml(
-    input.subject,
+    subject,
   )}</title></head>
 <body style="margin:0;padding:0;background:#f6f4fb;">
-<span style="display:none;font-size:1px;color:#f6f4fb;">${escapeHtml(input.preheader ?? input.subject)}</span>
+<span style="display:none;font-size:1px;color:#f6f4fb;">${escapeHtml(preheader)}</span>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f4fb;padding:32px 12px;">
 <tr><td align="center">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 8px 30px rgba(83,44,150,0.08);font-family:'Segoe UI',Arial,Helvetica,sans-serif;">
-  <tr><td style="background:linear-gradient(135deg,#7c3aed 0%,#a855f7 55%,#ffffff 160%);padding:28px 32px;">
-    <div style="font-size:20px;font-weight:700;color:#ffffff;letter-spacing:-0.2px;">☾ Halal Connect</div>
-    <div style="font-size:12px;color:#ede9fe;margin-top:4px;">Marriage-minded. Faith-first.</div>
+  <tr><td style="background:linear-gradient(135deg,#7c3aed 0%,#a855f7 55%,#ffffff 160%);padding:24px 32px;">
+    <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+      <td style="padding-right:12px;vertical-align:middle;">
+        <img src="${EMAIL_LOGO_URL}" width="44" height="44" alt="Halal Connect" style="display:block;border:0;background:transparent;"/>
+      </td>
+      <td style="vertical-align:middle;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">
+        <div style="font-size:20px;font-weight:700;color:#ffffff;letter-spacing:-0.2px;">Halal Connect</div>
+        <div style="font-size:12px;color:#ede9fe;margin-top:2px;">Marriage-minded. Faith-first.</div>
+      </td>
+    </tr></table>
   </td></tr>
   <tr><td style="padding:32px 32px 8px;">
-    <h1 style="margin:0 0 18px;font-size:22px;line-height:1.3;color:#2c2340;">${escapeHtml(
-      input.heading ?? input.subject,
-    )}</h1>
+    <h1 style="margin:0 0 18px;font-size:22px;line-height:1.3;color:#2c2340;">${escapeHtml(heading)}</h1>
     ${content}
   </td></tr>
   ${cta}
@@ -73,4 +113,3 @@ export function renderEmailHtml(input: {
 </td></tr></table>
 </body></html>`;
 }
-
