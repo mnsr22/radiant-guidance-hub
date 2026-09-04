@@ -35,7 +35,10 @@ export const Route = createRootRoute({
       { title: "Halal Connect — Admin Dashboard" },
       { name: "description", content: "Admin dashboard for Halal Connect, an Islamic dating & marriage platform." },
     ],
-    links: [{ rel: "stylesheet", href: appCss }],
+    links: [
+      { rel: "stylesheet", href: appCss },
+      { rel: "icon", type: "image/png", href: "/favicon.png" },
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,
