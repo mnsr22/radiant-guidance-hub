@@ -31,6 +31,7 @@ import { Route as JourneyRouteImport } from './routes/journey'
 import { Route as IslamicRouteImport } from './routes/islamic'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as EmailRouteImport } from './routes/email'
+import { Route as DiscountsRouteImport } from './routes/discounts'
 import { Route as DeleteAccountRouteImport } from './routes/delete-account'
 import { Route as ChatsRouteImport } from './routes/chats'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
@@ -148,6 +149,11 @@ const EmailRoute = EmailRouteImport.update({
   path: '/email',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DiscountsRoute = DiscountsRouteImport.update({
+  id: '/discounts',
+  path: '/discounts',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DeleteAccountRoute = DeleteAccountRouteImport.update({
   id: '/delete-account',
   path: '/delete-account',
@@ -185,6 +191,7 @@ export interface FileRoutesByFullPath {
   '/analytics': typeof AnalyticsRoute
   '/chats': typeof ChatsRoute
   '/delete-account': typeof DeleteAccountRoute
+  '/discounts': typeof DiscountsRoute
   '/email': typeof EmailRoute
   '/help': typeof HelpRoute
   '/islamic': typeof IslamicRoute
@@ -215,6 +222,7 @@ export interface FileRoutesByTo {
   '/analytics': typeof AnalyticsRoute
   '/chats': typeof ChatsRoute
   '/delete-account': typeof DeleteAccountRoute
+  '/discounts': typeof DiscountsRoute
   '/email': typeof EmailRoute
   '/help': typeof HelpRoute
   '/islamic': typeof IslamicRoute
@@ -246,6 +254,7 @@ export interface FileRoutesById {
   '/analytics': typeof AnalyticsRoute
   '/chats': typeof ChatsRoute
   '/delete-account': typeof DeleteAccountRoute
+  '/discounts': typeof DiscountsRoute
   '/email': typeof EmailRoute
   '/help': typeof HelpRoute
   '/islamic': typeof IslamicRoute
@@ -278,6 +287,7 @@ export interface FileRouteTypes {
     | '/analytics'
     | '/chats'
     | '/delete-account'
+    | '/discounts'
     | '/email'
     | '/help'
     | '/islamic'
@@ -308,6 +318,7 @@ export interface FileRouteTypes {
     | '/analytics'
     | '/chats'
     | '/delete-account'
+    | '/discounts'
     | '/email'
     | '/help'
     | '/islamic'
@@ -338,6 +349,7 @@ export interface FileRouteTypes {
     | '/analytics'
     | '/chats'
     | '/delete-account'
+    | '/discounts'
     | '/email'
     | '/help'
     | '/islamic'
@@ -369,6 +381,7 @@ export interface RootRouteChildren {
   AnalyticsRoute: typeof AnalyticsRoute
   ChatsRoute: typeof ChatsRoute
   DeleteAccountRoute: typeof DeleteAccountRoute
+  DiscountsRoute: typeof DiscountsRoute
   EmailRoute: typeof EmailRoute
   HelpRoute: typeof HelpRoute
   IslamicRoute: typeof IslamicRoute
@@ -550,6 +563,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EmailRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/discounts': {
+      id: '/discounts'
+      path: '/discounts'
+      fullPath: '/discounts'
+      preLoaderRoute: typeof DiscountsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/delete-account': {
       id: '/delete-account'
       path: '/delete-account'
@@ -601,6 +621,7 @@ const rootRouteChildren: RootRouteChildren = {
   AnalyticsRoute: AnalyticsRoute,
   ChatsRoute: ChatsRoute,
   DeleteAccountRoute: DeleteAccountRoute,
+  DiscountsRoute: DiscountsRoute,
   EmailRoute: EmailRoute,
   HelpRoute: HelpRoute,
   IslamicRoute: IslamicRoute,
