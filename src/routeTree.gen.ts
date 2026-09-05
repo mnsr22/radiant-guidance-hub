@@ -27,6 +27,7 @@ import { Route as MatchesRouteImport } from './routes/matches'
 import { Route as LogsRouteImport } from './routes/logs'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LiveRouteImport } from './routes/live'
+import { Route as JourneyRouteImport } from './routes/journey'
 import { Route as IslamicRouteImport } from './routes/islamic'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as EmailRouteImport } from './routes/email'
@@ -127,6 +128,11 @@ const LiveRoute = LiveRouteImport.update({
   path: '/live',
   getParentRoute: () => rootRouteImport,
 } as any)
+const JourneyRoute = JourneyRouteImport.update({
+  id: '/journey',
+  path: '/journey',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IslamicRoute = IslamicRouteImport.update({
   id: '/islamic',
   path: '/islamic',
@@ -182,6 +188,7 @@ export interface FileRoutesByFullPath {
   '/email': typeof EmailRoute
   '/help': typeof HelpRoute
   '/islamic': typeof IslamicRoute
+  '/journey': typeof JourneyRoute
   '/live': typeof LiveRoute
   '/login': typeof LoginRoute
   '/logs': typeof LogsRoute
@@ -211,6 +218,7 @@ export interface FileRoutesByTo {
   '/email': typeof EmailRoute
   '/help': typeof HelpRoute
   '/islamic': typeof IslamicRoute
+  '/journey': typeof JourneyRoute
   '/live': typeof LiveRoute
   '/login': typeof LoginRoute
   '/logs': typeof LogsRoute
@@ -241,6 +249,7 @@ export interface FileRoutesById {
   '/email': typeof EmailRoute
   '/help': typeof HelpRoute
   '/islamic': typeof IslamicRoute
+  '/journey': typeof JourneyRoute
   '/live': typeof LiveRoute
   '/login': typeof LoginRoute
   '/logs': typeof LogsRoute
@@ -272,6 +281,7 @@ export interface FileRouteTypes {
     | '/email'
     | '/help'
     | '/islamic'
+    | '/journey'
     | '/live'
     | '/login'
     | '/logs'
@@ -301,6 +311,7 @@ export interface FileRouteTypes {
     | '/email'
     | '/help'
     | '/islamic'
+    | '/journey'
     | '/live'
     | '/login'
     | '/logs'
@@ -330,6 +341,7 @@ export interface FileRouteTypes {
     | '/email'
     | '/help'
     | '/islamic'
+    | '/journey'
     | '/live'
     | '/login'
     | '/logs'
@@ -360,6 +372,7 @@ export interface RootRouteChildren {
   EmailRoute: typeof EmailRoute
   HelpRoute: typeof HelpRoute
   IslamicRoute: typeof IslamicRoute
+  JourneyRoute: typeof JourneyRoute
   LiveRoute: typeof LiveRoute
   LoginRoute: typeof LoginRoute
   LogsRoute: typeof LogsRoute
@@ -509,6 +522,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LiveRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/journey': {
+      id: '/journey'
+      path: '/journey'
+      fullPath: '/journey'
+      preLoaderRoute: typeof JourneyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/islamic': {
       id: '/islamic'
       path: '/islamic'
@@ -584,6 +604,7 @@ const rootRouteChildren: RootRouteChildren = {
   EmailRoute: EmailRoute,
   HelpRoute: HelpRoute,
   IslamicRoute: IslamicRoute,
+  JourneyRoute: JourneyRoute,
   LiveRoute: LiveRoute,
   LoginRoute: LoginRoute,
   LogsRoute: LogsRoute,
