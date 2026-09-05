@@ -18,6 +18,7 @@ import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as PhotosRouteImport } from './routes/photos'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MonetizationRouteImport } from './routes/monetization'
 import { Route as ModerationRouteImport } from './routes/moderation'
@@ -26,9 +27,11 @@ import { Route as MatchesRouteImport } from './routes/matches'
 import { Route as LogsRouteImport } from './routes/logs'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LiveRouteImport } from './routes/live'
+import { Route as JourneyRouteImport } from './routes/journey'
 import { Route as IslamicRouteImport } from './routes/islamic'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as EmailRouteImport } from './routes/email'
+import { Route as DiscountsRouteImport } from './routes/discounts'
 import { Route as DeleteAccountRouteImport } from './routes/delete-account'
 import { Route as ChatsRouteImport } from './routes/chats'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
@@ -81,6 +84,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
   path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PhotosRoute = PhotosRouteImport.update({
+  id: '/photos',
+  path: '/photos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const NotificationsRoute = NotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
@@ -121,6 +129,11 @@ const LiveRoute = LiveRouteImport.update({
   path: '/live',
   getParentRoute: () => rootRouteImport,
 } as any)
+const JourneyRoute = JourneyRouteImport.update({
+  id: '/journey',
+  path: '/journey',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IslamicRoute = IslamicRouteImport.update({
   id: '/islamic',
   path: '/islamic',
@@ -134,6 +147,11 @@ const HelpRoute = HelpRouteImport.update({
 const EmailRoute = EmailRouteImport.update({
   id: '/email',
   path: '/email',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DiscountsRoute = DiscountsRouteImport.update({
+  id: '/discounts',
+  path: '/discounts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DeleteAccountRoute = DeleteAccountRouteImport.update({
@@ -173,9 +191,11 @@ export interface FileRoutesByFullPath {
   '/analytics': typeof AnalyticsRoute
   '/chats': typeof ChatsRoute
   '/delete-account': typeof DeleteAccountRoute
+  '/discounts': typeof DiscountsRoute
   '/email': typeof EmailRoute
   '/help': typeof HelpRoute
   '/islamic': typeof IslamicRoute
+  '/journey': typeof JourneyRoute
   '/live': typeof LiveRoute
   '/login': typeof LoginRoute
   '/logs': typeof LogsRoute
@@ -184,6 +204,7 @@ export interface FileRoutesByFullPath {
   '/moderation': typeof ModerationRoute
   '/monetization': typeof MonetizationRoute
   '/notifications': typeof NotificationsRoute
+  '/photos': typeof PhotosRoute
   '/privacy': typeof PrivacyRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
@@ -201,9 +222,11 @@ export interface FileRoutesByTo {
   '/analytics': typeof AnalyticsRoute
   '/chats': typeof ChatsRoute
   '/delete-account': typeof DeleteAccountRoute
+  '/discounts': typeof DiscountsRoute
   '/email': typeof EmailRoute
   '/help': typeof HelpRoute
   '/islamic': typeof IslamicRoute
+  '/journey': typeof JourneyRoute
   '/live': typeof LiveRoute
   '/login': typeof LoginRoute
   '/logs': typeof LogsRoute
@@ -212,6 +235,7 @@ export interface FileRoutesByTo {
   '/moderation': typeof ModerationRoute
   '/monetization': typeof MonetizationRoute
   '/notifications': typeof NotificationsRoute
+  '/photos': typeof PhotosRoute
   '/privacy': typeof PrivacyRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
@@ -230,9 +254,11 @@ export interface FileRoutesById {
   '/analytics': typeof AnalyticsRoute
   '/chats': typeof ChatsRoute
   '/delete-account': typeof DeleteAccountRoute
+  '/discounts': typeof DiscountsRoute
   '/email': typeof EmailRoute
   '/help': typeof HelpRoute
   '/islamic': typeof IslamicRoute
+  '/journey': typeof JourneyRoute
   '/live': typeof LiveRoute
   '/login': typeof LoginRoute
   '/logs': typeof LogsRoute
@@ -241,6 +267,7 @@ export interface FileRoutesById {
   '/moderation': typeof ModerationRoute
   '/monetization': typeof MonetizationRoute
   '/notifications': typeof NotificationsRoute
+  '/photos': typeof PhotosRoute
   '/privacy': typeof PrivacyRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
@@ -260,9 +287,11 @@ export interface FileRouteTypes {
     | '/analytics'
     | '/chats'
     | '/delete-account'
+    | '/discounts'
     | '/email'
     | '/help'
     | '/islamic'
+    | '/journey'
     | '/live'
     | '/login'
     | '/logs'
@@ -271,6 +300,7 @@ export interface FileRouteTypes {
     | '/moderation'
     | '/monetization'
     | '/notifications'
+    | '/photos'
     | '/privacy'
     | '/reports'
     | '/settings'
@@ -288,9 +318,11 @@ export interface FileRouteTypes {
     | '/analytics'
     | '/chats'
     | '/delete-account'
+    | '/discounts'
     | '/email'
     | '/help'
     | '/islamic'
+    | '/journey'
     | '/live'
     | '/login'
     | '/logs'
@@ -299,6 +331,7 @@ export interface FileRouteTypes {
     | '/moderation'
     | '/monetization'
     | '/notifications'
+    | '/photos'
     | '/privacy'
     | '/reports'
     | '/settings'
@@ -316,9 +349,11 @@ export interface FileRouteTypes {
     | '/analytics'
     | '/chats'
     | '/delete-account'
+    | '/discounts'
     | '/email'
     | '/help'
     | '/islamic'
+    | '/journey'
     | '/live'
     | '/login'
     | '/logs'
@@ -327,6 +362,7 @@ export interface FileRouteTypes {
     | '/moderation'
     | '/monetization'
     | '/notifications'
+    | '/photos'
     | '/privacy'
     | '/reports'
     | '/settings'
@@ -345,9 +381,11 @@ export interface RootRouteChildren {
   AnalyticsRoute: typeof AnalyticsRoute
   ChatsRoute: typeof ChatsRoute
   DeleteAccountRoute: typeof DeleteAccountRoute
+  DiscountsRoute: typeof DiscountsRoute
   EmailRoute: typeof EmailRoute
   HelpRoute: typeof HelpRoute
   IslamicRoute: typeof IslamicRoute
+  JourneyRoute: typeof JourneyRoute
   LiveRoute: typeof LiveRoute
   LoginRoute: typeof LoginRoute
   LogsRoute: typeof LogsRoute
@@ -356,6 +394,7 @@ export interface RootRouteChildren {
   ModerationRoute: typeof ModerationRoute
   MonetizationRoute: typeof MonetizationRoute
   NotificationsRoute: typeof NotificationsRoute
+  PhotosRoute: typeof PhotosRoute
   PrivacyRoute: typeof PrivacyRoute
   ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRoute
@@ -433,6 +472,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/photos': {
+      id: '/photos'
+      path: '/photos'
+      fullPath: '/photos'
+      preLoaderRoute: typeof PhotosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/notifications': {
       id: '/notifications'
       path: '/notifications'
@@ -489,6 +535,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LiveRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/journey': {
+      id: '/journey'
+      path: '/journey'
+      fullPath: '/journey'
+      preLoaderRoute: typeof JourneyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/islamic': {
       id: '/islamic'
       path: '/islamic'
@@ -508,6 +561,13 @@ declare module '@tanstack/react-router' {
       path: '/email'
       fullPath: '/email'
       preLoaderRoute: typeof EmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/discounts': {
+      id: '/discounts'
+      path: '/discounts'
+      fullPath: '/discounts'
+      preLoaderRoute: typeof DiscountsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/delete-account': {
@@ -561,9 +621,11 @@ const rootRouteChildren: RootRouteChildren = {
   AnalyticsRoute: AnalyticsRoute,
   ChatsRoute: ChatsRoute,
   DeleteAccountRoute: DeleteAccountRoute,
+  DiscountsRoute: DiscountsRoute,
   EmailRoute: EmailRoute,
   HelpRoute: HelpRoute,
   IslamicRoute: IslamicRoute,
+  JourneyRoute: JourneyRoute,
   LiveRoute: LiveRoute,
   LoginRoute: LoginRoute,
   LogsRoute: LogsRoute,
@@ -572,6 +634,7 @@ const rootRouteChildren: RootRouteChildren = {
   ModerationRoute: ModerationRoute,
   MonetizationRoute: MonetizationRoute,
   NotificationsRoute: NotificationsRoute,
+  PhotosRoute: PhotosRoute,
   PrivacyRoute: PrivacyRoute,
   ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRoute,
