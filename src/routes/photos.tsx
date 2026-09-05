@@ -130,24 +130,25 @@ function PhotoModerationPage() {
       <PageHeader
         title="Photo Moderation"
         description="Review submitted photos, act on automatic flags, and audit private photo access."
-      >
-        <Button
+        actions={
+          <Button
           variant="outline"
           onClick={() => {
             downloadCSV("halal-connect-photo-moderation", filtered);
             toast.success("Export started");
           }}
         >
-          <Download className="mr-2 h-4 w-4" />
-          Export
-        </Button>
-      </PageHeader>
+            <Download className="mr-2 h-4 w-4" />
+            Export
+          </Button>
+        }
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Awaiting review" value={String(counts.pending)} icon={Images} />
-        <StatCard title="Auto-flagged" value={String(counts.flagged)} icon={Flag} />
-        <StatCard title="Approved" value={String(counts.approved)} icon={Check} />
-        <StatCard title="Private photo requests" value={String(counts.requests)} icon={ShieldAlert} />
+        <StatCard label="Awaiting review" value={String(counts.pending)} icon={Images} />
+        <StatCard label="Auto-flagged" value={String(counts.flagged)} icon={Flag} />
+        <StatCard label="Approved" value={String(counts.approved)} icon={Check} />
+        <StatCard label="Private photo requests" value={String(counts.requests)} icon={ShieldAlert} />
       </div>
 
       <Card className="mt-6">
