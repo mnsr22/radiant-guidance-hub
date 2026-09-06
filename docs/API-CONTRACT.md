@@ -35,8 +35,8 @@ Admin: `GET /admin/users?search&status&limit&offset`, `GET /admin/users/:id`, `P
 ## 3. Verification
 
 App:
-- `POST /verification/phone/start` `{phone}` → OTP by SMS
-- `POST /verification/phone/verify` `{phone, code}`
+- `POST /verification/phone` `{phone}` → submits the number for **manual admin review** (no SMS, no OTP). Sets phone status to `pending` and queues the user in the admin Verification Queue.
+- `GET /verification/phone` → `{phone, status, reason}` — the app polls or listens on `verification:updated`
 - `POST /verification/identity` multipart: `documentType: nationalId|passport`, `front`, `back`, `selfie|video` (≤30s)
 - `GET /verification/status` → `{phone: notSubmitted|pending|verified|rejected, identity: ...|resubmissionRequired, reason}`
 
