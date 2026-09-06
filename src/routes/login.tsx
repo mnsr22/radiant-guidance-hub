@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { ShieldCheck, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import logo from "@/assets/halal-connect-logo.png";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
