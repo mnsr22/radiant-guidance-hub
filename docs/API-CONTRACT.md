@@ -47,7 +47,7 @@ Admin:
 - `PATCH /admin/verifications/:userId` `{type, status, reason}`
 - `GET /admin/verifications/:userId/audit`
 
-Rules: documents in private storage, signed URLs ≤5 min, every view/decision writes an audit row, rejection reason required.
+Rules: **phone numbers are approved manually by an admin — no SMS/OTP provider is used.** Documents in private storage, signed URLs ≤5 min, every view/decision writes an audit row, rejection reason required.
 
 ---
 
@@ -146,7 +146,7 @@ Public/safe in the app: `VITE_API_URL`, Stripe publishable key, Firebase client 
 ## 13. Mobile app module checklist
 
 1. Onboarding — register, profile setup wizard, photos, preferences, questionnaire
-2. Verification — phone OTP, identity document flow with status screen
+2. Verification — submit phone number for manual admin approval (no OTP), identity document flow, status screen showing pending/verified/rejected + reason
 3. Discovery & matches — swipe, filters, match list
 4. Chat — realtime messages, read receipts, report/block
 5. Private photos — request access, "Photo requests" inbox with Approve/Decline, Privacy → who can see my private photos (revocable)
