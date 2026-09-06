@@ -81,9 +81,11 @@ export function SidebarNav({
 export function SidebarBrand({ collapsed = false }: { collapsed?: boolean }) {
   return (
     <Link to="/" className="flex items-center gap-2 overflow-hidden">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-primary shadow-glow">
-        <Sparkles className="h-5 w-5 text-primary-foreground" />
-      </div>
+      <img
+        src={logo}
+        alt="Halal Connect"
+        className="h-9 w-9 shrink-0 rounded-xl object-contain"
+      />
       {!collapsed && (
         <div className="leading-tight">
           <div className="text-sm font-semibold">Halal Connect</div>

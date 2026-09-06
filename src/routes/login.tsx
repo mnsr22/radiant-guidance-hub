@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { ShieldCheck, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import logo from "@/assets/halal-connect-logo.png";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -45,9 +46,7 @@ function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-hero px-4">
       <Card className="w-full max-w-sm p-8">
         <div className="mb-6 flex flex-col items-center text-center">
-          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-            <ShieldCheck className="h-6 w-6 text-primary" />
-          </div>
+          <img src={logo} alt="Halal Connect" className="mb-3 h-14 w-14 object-contain" />
           <h1 className="text-xl font-bold tracking-tight">Halal Connect Admin</h1>
           <p className="mt-1 text-sm text-muted-foreground">Sign in to the dashboard</p>
         </div>
