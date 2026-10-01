@@ -9,7 +9,7 @@ export function PublicShell({ children }: { children: ReactNode }) {
       <header className="border-b bg-card/60 backdrop-blur">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4">
           <Link to="/" className="flex items-center gap-2">
-            <img src={logo} alt="Halal Connect" className="h-8 w-8 rounded-lg object-contain" />
+            <img src={logo} alt="Halal Connect" className="h-11 w-auto max-w-8 object-contain" />
             <span className="text-sm font-semibold">Halal Connect</span>
           </Link>
           <nav className="flex items-center gap-4 text-xs text-muted-foreground">

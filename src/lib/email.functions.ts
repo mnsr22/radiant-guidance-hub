@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { personalise, renderEmailHtml } from "./email-template";
+import { EMAIL_LOGO_BASE64 } from "./email-logo";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
 
@@ -55,6 +56,13 @@ export const sendAdminEmail = createServerFn({ method: "POST" })
             to: [recipient.email],
             subject: personalise(data.subject, recipient.name),
             html,
+            attachments: [
+              {
+                filename: "halal-connect-logo.png",
+                content: EMAIL_LOGO_BASE64,
+                content_id: "halal-connect-logo",
+              },
+            ],
           }),
         });
         if (!response.ok) {
