@@ -113,7 +113,7 @@ export async function api<T = unknown>(path: string, opts: ApiOptions = {}): Pro
 
   // 401/403 on an authenticated call → session is dead/insufficient. Login
   // failures (auth: false) must not be treated as an expired session.
-  if (auth && (res.status === 401 || res.status === 403)) {
+  if (auth && res.status === 401) {
     expireSession();
   }
 
