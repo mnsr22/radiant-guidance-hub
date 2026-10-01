@@ -46,7 +46,7 @@ function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-hero px-4">
       <Card className="w-full max-w-sm p-8">
         <div className="mb-6 flex flex-col items-center text-center">
-          <img src={logo} alt="Halal Connect" className="mb-3 h-14 w-14 object-contain" />
+          <img src={logo} alt="Halal Connect" className="mb-4 h-24 w-auto max-w-20 object-contain" />
           <h1 className="text-xl font-bold tracking-tight">Halal Connect Admin</h1>
           <p className="mt-1 text-sm text-muted-foreground">Sign in to the dashboard</p>
         </div>

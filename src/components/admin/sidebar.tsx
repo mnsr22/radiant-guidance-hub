@@ -84,7 +84,7 @@ export function SidebarBrand({ collapsed = false }: { collapsed?: boolean }) {
       <img
         src={logo}
         alt="Halal Connect"
-        className="h-9 w-9 shrink-0 rounded-xl object-contain"
+        className="h-10 w-auto max-w-8 shrink-0 object-contain"
       />
       {!collapsed && (
         <div className="leading-tight">
