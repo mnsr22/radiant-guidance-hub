@@ -139,7 +139,7 @@ const baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> =
   extra,
 ) => {
   const result = await rawBaseQuery(args, store, extra);
-  if (result.error && (result.error.status === 401 || result.error.status === 403)) {
+  if (result.error && (result.error.status === 401)) {
     expireSession();
   }
   return result;

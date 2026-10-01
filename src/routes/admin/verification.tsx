@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import { AdminLayout } from '@/components/admin/layout';
 
 export const Route = createFileRoute('/admin/verification')({
   component: VerificationPage,
@@ -59,12 +60,13 @@ function VerificationPage() {
   const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
 
   return (
-    <div className="space-y-6 p-6">
+    <AdminLayout>
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Verification Queue</h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-muted-foreground mt-1">
             Review and approve user phone and identity verifications
           </p>
         </div>
@@ -86,7 +88,7 @@ function VerificationPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Total Pending
             </CardTitle>
           </CardHeader>
@@ -97,7 +99,7 @@ function VerificationPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Current Page
             </CardTitle>
           </CardHeader>
@@ -110,7 +112,7 @@ function VerificationPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Users on Page
             </CardTitle>
           </CardHeader>
@@ -136,7 +138,7 @@ function VerificationPage() {
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             Showing {(page - 1) * ITEMS_PER_PAGE + 1} to{' '}
             {Math.min(page * ITEMS_PER_PAGE, total)} of {total} users
           </p>
@@ -159,5 +161,6 @@ function VerificationPage() {
         </div>
       )}
     </div>
+    </AdminLayout>
   );
 }
