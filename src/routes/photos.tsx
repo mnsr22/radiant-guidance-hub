@@ -1,4 +1,8 @@
 import { useMemo, useState } from "react";
+import { api } from "@/lib/api";
+import { useRemoteList } from "@/lib/remote";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { createFileRoute } from "@tanstack/react-router";
 import { Check, Download, Eye, Flag, Images, ShieldAlert, X } from "lucide-react";
 import { toast } from "sonner";
@@ -33,6 +37,8 @@ export const Route = createFileRoute("/photos")({
 type PhotoStatus = "pending" | "approved" | "rejected";
 type PhotoRow = {
   id: string;
+  url?: string;
+  reason?: string;
   userId: string;
   member: string;
   email: string;
@@ -96,7 +102,29 @@ const statusTone: Record<string, string> = {
 };
 
 function PhotoModerationPage() {
-  const [photos, setPhotos] = useState<PhotoRow[]>(initialPhotos);
+  const { rows: photos, mutate, sample, reload } = useRemoteList<PhotoRow>("/admin/photos", initialPhotos, (r) => ({
+    id: String(r.id),
+    url: r.url ?? r.signedUrl,
+    userId: r.userId,
+    member: r.user?.name ?? r.member ?? "Member",
+    email: r.user?.email ?? r.email ?? "",
+    kind: r.visibility === "private" ? "Private" : "Profile",
+    flags: r.flags ?? [],
+    submitted: r.createdAt ? new Date(r.createdAt).toLocaleString() : "",
+    status: (r.status ?? "pending") as PhotoStatus,
+  }));
+  const req = useRemoteList<AccessRow>("/admin/photo-requests", accessRequests, (r) => ({
+    id: String(r.id),
+    requester: r.requester?.name ?? r.requester ?? "",
+    owner: r.owner?.name ?? r.owner ?? "",
+    reason: r.reason ?? "",
+    requested: r.createdAt ? new Date(r.createdAt).toLocaleDateString() : "",
+    status: r.status,
+  }));
+  const [viewing, setViewing] = useState<PhotoRow | null>(null);
+  const [rejecting, setRejecting] = useState<PhotoRow | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [revoking, setRevoking] = useState<AccessRow | null>(null);
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<PhotoStatus | "flagged">("pending");
 
@@ -115,14 +143,28 @@ function PhotoModerationPage() {
       pending: photos.filter((p) => p.status === "pending").length,
       flagged: photos.filter((p) => p.flags.length > 0).length,
       approved: photos.filter((p) => p.status === "approved").length,
-      requests: accessRequests.filter((r) => r.status === "pending").length,
+      requests: req.rows.filter((r) => r.status === "pending").length,
     }),
-    [photos],
+    [photos, req.rows],
   );
 
-  function decide(id: string, status: PhotoStatus) {
-    setPhotos((rows) => rows.map((r) => (r.id === id ? { ...r, status } : r)));
-    toast.success(status === "approved" ? "Photo approved" : "Photo rejected");
+  async function decide(id: string, status: PhotoStatus, reason?: string) {
+    try {
+      await mutate(() => api(`/admin/photos/${id}`, { method: "PATCH", body: { status, reason } }), id, { status, reason });
+      toast.success(status === "approved" ? "Photo approved" : "Photo rejected — member notified");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Action failed");
+    }
+  }
+
+  async function revoke(r: AccessRow) {
+    try {
+      await req.mutate(() => api(`/admin/photo-requests/${r.id}`, { method: "PATCH", body: { status: "revoked", reason: "Admin safety override" } }), r.id, { status: "revoked" });
+      toast.success("Access revoked and logged for audit");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Revoke failed");
+    }
+    setRevoking(null);
   }
 
   return (
@@ -144,6 +186,14 @@ function PhotoModerationPage() {
         }
       />
 
+      {(sample || req.sample) && (
+        <Card className="mb-4 border-amber-500/40 bg-amber-500/5">
+          <CardContent className="flex flex-col gap-2 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+            <span>Your server isn't returning photos yet, so sample rows are shown. Actions still work on this screen.</span>
+            <Button size="sm" variant="outline" onClick={() => { reload(); req.reload(); }}>Retry</Button>
+          </CardContent>
+        </Card>
+      )}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Awaiting review" value={String(counts.pending)} icon={Images} />
         <StatCard label="Auto-flagged" value={String(counts.flagged)} icon={Flag} />
@@ -213,14 +263,14 @@ function PhotoModerationPage() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => toast.info(`Opening ${p.id} in secure viewer`)}
+                            onClick={() => setViewing(p)} aria-label="View photo"
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button size="sm" variant="ghost" onClick={() => decide(p.id, "approved")}>
+                          <Button size="sm" variant="ghost" aria-label="Approve" disabled={p.status === "approved"} onClick={() => decide(p.id, "approved")}>
                             <Check className="h-4 w-4 text-emerald-600" />
                           </Button>
-                          <Button size="sm" variant="ghost" onClick={() => decide(p.id, "rejected")}>
+                          <Button size="sm" variant="ghost" aria-label="Reject" disabled={p.status === "rejected"} onClick={() => { setRejectReason(""); setRejecting(p); }}>
                             <X className="h-4 w-4 text-destructive" />
                           </Button>
                         </TableCell>
@@ -261,7 +311,7 @@ function PhotoModerationPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {accessRequests.map((r) => (
+              {req.rows.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell className="font-medium">{r.requester}</TableCell>
                   <TableCell>{r.owner}</TableCell>
@@ -274,7 +324,8 @@ function PhotoModerationPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => toast.success("Access revoked and logged for audit")}
+                      disabled={r.status === "revoked" || r.status === "declined"}
+                      onClick={() => setRevoking(r)}
                     >
                       Revoke access
                     </Button>
@@ -285,6 +336,70 @@ function PhotoModerationPage() {
           </Table>
         </CardContent>
       </Card>
+      <Dialog open={!!viewing} onOpenChange={(o) => !o && setViewing(null)}>
+        <DialogContent className="sm:max-w-lg">
+          {viewing && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{viewing.member} · {viewing.kind} photo</DialogTitle>
+                <DialogDescription>{viewing.email} · submitted {viewing.submitted}</DialogDescription>
+              </DialogHeader>
+              <div className="flex aspect-square items-center justify-center overflow-hidden rounded-lg border bg-muted">
+                {viewing.url ? (
+                  <img src={viewing.url} alt={`Photo by ${viewing.member}`} className="h-full w-full object-contain" />
+                ) : (
+                  <span className="text-sm text-muted-foreground">Image loads here from your server's secure link</span>
+                )}
+              </div>
+              {viewing.flags.length > 0 && <p className="text-sm text-amber-600">Flags: {viewing.flags.join(", ")}</p>}
+              <DialogFooter className="gap-2">
+                <Button variant="outline" onClick={() => { setRejectReason(""); setRejecting(viewing); setViewing(null); }}>Reject</Button>
+                <Button onClick={() => { decide(viewing.id, "approved"); setViewing(null); }}>Approve</Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!rejecting} onOpenChange={(o) => !o && setRejecting(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reject photo</DialogTitle>
+            <DialogDescription>The member sees this reason in the app.</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-wrap gap-2">
+            {["Face not visible", "Inappropriate content", "Contact info in photo", "Not the member"].map((r) => (
+              <Button key={r} size="sm" variant={rejectReason === r ? "default" : "outline"} onClick={() => setRejectReason(r)}>{r}</Button>
+            ))}
+          </div>
+          <Textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="Reason" />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejecting(null)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              disabled={!rejectReason.trim()}
+              onClick={() => { if (rejecting) decide(rejecting.id, "rejected", rejectReason.trim()); setRejecting(null); }}
+            >
+              Reject photo
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!revoking} onOpenChange={(o) => !o && setRevoking(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Revoke private photo access?</DialogTitle>
+            <DialogDescription>
+              {revoking?.requester} will no longer see {revoking?.owner}'s private photos. This is a safety override and is logged.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRevoking(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => revoking && revoke(revoking)}>Revoke</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }
