@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WithdrawalsRouteImport } from './routes/withdrawals'
 import { Route as WaliRouteImport } from './routes/wali'
 import { Route as UsersRouteImport } from './routes/users'
 import { Route as TicketsRouteImport } from './routes/tickets'
@@ -19,6 +20,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PhotosRouteImport } from './routes/photos'
+import { Route as PaymentsRouteImport } from './routes/payments'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MonetizationRouteImport } from './routes/monetization'
 import { Route as ModerationRouteImport } from './routes/moderation'
@@ -30,6 +32,7 @@ import { Route as LiveRouteImport } from './routes/live'
 import { Route as JourneyRouteImport } from './routes/journey'
 import { Route as IslamicRouteImport } from './routes/islamic'
 import { Route as HelpRouteImport } from './routes/help'
+import { Route as GiftsRouteImport } from './routes/gifts'
 import { Route as EmailRouteImport } from './routes/email'
 import { Route as DiscountsRouteImport } from './routes/discounts'
 import { Route as DeleteAccountRouteImport } from './routes/delete-account'
@@ -39,6 +42,11 @@ import { Route as AdsRouteImport } from './routes/ads'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminVerificationRouteImport } from './routes/admin/verification'
 
+const WithdrawalsRoute = WithdrawalsRouteImport.update({
+  id: '/withdrawals',
+  path: '/withdrawals',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WaliRoute = WaliRouteImport.update({
   id: '/wali',
   path: '/wali',
@@ -87,6 +95,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
 const PhotosRoute = PhotosRouteImport.update({
   id: '/photos',
   path: '/photos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaymentsRoute = PaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NotificationsRoute = NotificationsRouteImport.update({
@@ -144,6 +157,11 @@ const HelpRoute = HelpRouteImport.update({
   path: '/help',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GiftsRoute = GiftsRouteImport.update({
+  id: '/gifts',
+  path: '/gifts',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EmailRoute = EmailRouteImport.update({
   id: '/email',
   path: '/email',
@@ -193,6 +211,7 @@ export interface FileRoutesByFullPath {
   '/delete-account': typeof DeleteAccountRoute
   '/discounts': typeof DiscountsRoute
   '/email': typeof EmailRoute
+  '/gifts': typeof GiftsRoute
   '/help': typeof HelpRoute
   '/islamic': typeof IslamicRoute
   '/journey': typeof JourneyRoute
@@ -204,6 +223,7 @@ export interface FileRoutesByFullPath {
   '/moderation': typeof ModerationRoute
   '/monetization': typeof MonetizationRoute
   '/notifications': typeof NotificationsRoute
+  '/payments': typeof PaymentsRoute
   '/photos': typeof PhotosRoute
   '/privacy': typeof PrivacyRoute
   '/reports': typeof ReportsRoute
@@ -214,6 +234,7 @@ export interface FileRoutesByFullPath {
   '/tickets': typeof TicketsRoute
   '/users': typeof UsersRoute
   '/wali': typeof WaliRoute
+  '/withdrawals': typeof WithdrawalsRoute
   '/admin/verification': typeof AdminVerificationRoute
 }
 export interface FileRoutesByTo {
@@ -224,6 +245,7 @@ export interface FileRoutesByTo {
   '/delete-account': typeof DeleteAccountRoute
   '/discounts': typeof DiscountsRoute
   '/email': typeof EmailRoute
+  '/gifts': typeof GiftsRoute
   '/help': typeof HelpRoute
   '/islamic': typeof IslamicRoute
   '/journey': typeof JourneyRoute
@@ -235,6 +257,7 @@ export interface FileRoutesByTo {
   '/moderation': typeof ModerationRoute
   '/monetization': typeof MonetizationRoute
   '/notifications': typeof NotificationsRoute
+  '/payments': typeof PaymentsRoute
   '/photos': typeof PhotosRoute
   '/privacy': typeof PrivacyRoute
   '/reports': typeof ReportsRoute
@@ -245,6 +268,7 @@ export interface FileRoutesByTo {
   '/tickets': typeof TicketsRoute
   '/users': typeof UsersRoute
   '/wali': typeof WaliRoute
+  '/withdrawals': typeof WithdrawalsRoute
   '/admin/verification': typeof AdminVerificationRoute
 }
 export interface FileRoutesById {
@@ -256,6 +280,7 @@ export interface FileRoutesById {
   '/delete-account': typeof DeleteAccountRoute
   '/discounts': typeof DiscountsRoute
   '/email': typeof EmailRoute
+  '/gifts': typeof GiftsRoute
   '/help': typeof HelpRoute
   '/islamic': typeof IslamicRoute
   '/journey': typeof JourneyRoute
@@ -267,6 +292,7 @@ export interface FileRoutesById {
   '/moderation': typeof ModerationRoute
   '/monetization': typeof MonetizationRoute
   '/notifications': typeof NotificationsRoute
+  '/payments': typeof PaymentsRoute
   '/photos': typeof PhotosRoute
   '/privacy': typeof PrivacyRoute
   '/reports': typeof ReportsRoute
@@ -277,6 +303,7 @@ export interface FileRoutesById {
   '/tickets': typeof TicketsRoute
   '/users': typeof UsersRoute
   '/wali': typeof WaliRoute
+  '/withdrawals': typeof WithdrawalsRoute
   '/admin/verification': typeof AdminVerificationRoute
 }
 export interface FileRouteTypes {
@@ -289,6 +316,7 @@ export interface FileRouteTypes {
     | '/delete-account'
     | '/discounts'
     | '/email'
+    | '/gifts'
     | '/help'
     | '/islamic'
     | '/journey'
@@ -300,6 +328,7 @@ export interface FileRouteTypes {
     | '/moderation'
     | '/monetization'
     | '/notifications'
+    | '/payments'
     | '/photos'
     | '/privacy'
     | '/reports'
@@ -310,6 +339,7 @@ export interface FileRouteTypes {
     | '/tickets'
     | '/users'
     | '/wali'
+    | '/withdrawals'
     | '/admin/verification'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -320,6 +350,7 @@ export interface FileRouteTypes {
     | '/delete-account'
     | '/discounts'
     | '/email'
+    | '/gifts'
     | '/help'
     | '/islamic'
     | '/journey'
@@ -331,6 +362,7 @@ export interface FileRouteTypes {
     | '/moderation'
     | '/monetization'
     | '/notifications'
+    | '/payments'
     | '/photos'
     | '/privacy'
     | '/reports'
@@ -341,6 +373,7 @@ export interface FileRouteTypes {
     | '/tickets'
     | '/users'
     | '/wali'
+    | '/withdrawals'
     | '/admin/verification'
   id:
     | '__root__'
@@ -351,6 +384,7 @@ export interface FileRouteTypes {
     | '/delete-account'
     | '/discounts'
     | '/email'
+    | '/gifts'
     | '/help'
     | '/islamic'
     | '/journey'
@@ -362,6 +396,7 @@ export interface FileRouteTypes {
     | '/moderation'
     | '/monetization'
     | '/notifications'
+    | '/payments'
     | '/photos'
     | '/privacy'
     | '/reports'
@@ -372,6 +407,7 @@ export interface FileRouteTypes {
     | '/tickets'
     | '/users'
     | '/wali'
+    | '/withdrawals'
     | '/admin/verification'
   fileRoutesById: FileRoutesById
 }
@@ -383,6 +419,7 @@ export interface RootRouteChildren {
   DeleteAccountRoute: typeof DeleteAccountRoute
   DiscountsRoute: typeof DiscountsRoute
   EmailRoute: typeof EmailRoute
+  GiftsRoute: typeof GiftsRoute
   HelpRoute: typeof HelpRoute
   IslamicRoute: typeof IslamicRoute
   JourneyRoute: typeof JourneyRoute
@@ -394,6 +431,7 @@ export interface RootRouteChildren {
   ModerationRoute: typeof ModerationRoute
   MonetizationRoute: typeof MonetizationRoute
   NotificationsRoute: typeof NotificationsRoute
+  PaymentsRoute: typeof PaymentsRoute
   PhotosRoute: typeof PhotosRoute
   PrivacyRoute: typeof PrivacyRoute
   ReportsRoute: typeof ReportsRoute
@@ -404,11 +442,19 @@ export interface RootRouteChildren {
   TicketsRoute: typeof TicketsRoute
   UsersRoute: typeof UsersRoute
   WaliRoute: typeof WaliRoute
+  WithdrawalsRoute: typeof WithdrawalsRoute
   AdminVerificationRoute: typeof AdminVerificationRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/withdrawals': {
+      id: '/withdrawals'
+      path: '/withdrawals'
+      fullPath: '/withdrawals'
+      preLoaderRoute: typeof WithdrawalsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/wali': {
       id: '/wali'
       path: '/wali'
@@ -477,6 +523,13 @@ declare module '@tanstack/react-router' {
       path: '/photos'
       fullPath: '/photos'
       preLoaderRoute: typeof PhotosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payments': {
+      id: '/payments'
+      path: '/payments'
+      fullPath: '/payments'
+      preLoaderRoute: typeof PaymentsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/notifications': {
@@ -556,6 +609,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HelpRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/gifts': {
+      id: '/gifts'
+      path: '/gifts'
+      fullPath: '/gifts'
+      preLoaderRoute: typeof GiftsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/email': {
       id: '/email'
       path: '/email'
@@ -623,6 +683,7 @@ const rootRouteChildren: RootRouteChildren = {
   DeleteAccountRoute: DeleteAccountRoute,
   DiscountsRoute: DiscountsRoute,
   EmailRoute: EmailRoute,
+  GiftsRoute: GiftsRoute,
   HelpRoute: HelpRoute,
   IslamicRoute: IslamicRoute,
   JourneyRoute: JourneyRoute,
@@ -634,6 +695,7 @@ const rootRouteChildren: RootRouteChildren = {
   ModerationRoute: ModerationRoute,
   MonetizationRoute: MonetizationRoute,
   NotificationsRoute: NotificationsRoute,
+  PaymentsRoute: PaymentsRoute,
   PhotosRoute: PhotosRoute,
   PrivacyRoute: PrivacyRoute,
   ReportsRoute: ReportsRoute,
@@ -644,6 +706,7 @@ const rootRouteChildren: RootRouteChildren = {
   TicketsRoute: TicketsRoute,
   UsersRoute: UsersRoute,
   WaliRoute: WaliRoute,
+  WithdrawalsRoute: WithdrawalsRoute,
   AdminVerificationRoute: AdminVerificationRoute,
 }
 export const routeTree = rootRouteImport
