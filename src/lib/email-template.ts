@@ -2,8 +2,8 @@
 // Personalisation is applied to every text field (subject, heading, preheader,
 // body, CTA) so a `{{name}}` token can never leak into a delivered email.
 
-/** Content-ID used by the attached logo so email clients do not fetch a remote image. */
-export const EMAIL_LOGO_URL = "cid:halal-connect-logo";
+/** Browser preview fallback; delivered emails override this with an inline attachment. */
+export const EMAIL_LOGO_URL = "/halal-connect-logo.png";
 
 /** Fallback used when a member has not set up their name yet. */
 export const DEFAULT_GREETING_NAME = "there";
@@ -53,6 +53,7 @@ export function renderEmailHtml(input: {
   ctaUrl?: string;
   preheader?: string;
   name?: string;
+  logoUrl?: string;
 }) {
   const name = input.name;
   const subject = personalise(input.subject, name);
@@ -60,11 +61,12 @@ export function renderEmailHtml(input: {
   const preheader = personalise(input.preheader ?? input.subject, name);
   const ctaLabel = input.ctaLabel ? personalise(input.ctaLabel, name) : undefined;
   const content = paragraphs(input.body, name);
+  const logoUrl = input.logoUrl ?? EMAIL_LOGO_URL;
 
   if (input.template === "plain") {
     return `<div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;padding:24px;">${content}
 <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:24px;"><tr>
-<td style="padding-right:8px;"><img src="${EMAIL_LOGO_URL}" width="24" height="36" alt="Halal Connect" style="display:block;border:0;width:24px;height:36px;object-fit:contain;"/></td>
+<td style="padding-right:8px;"><img src="${logoUrl}" width="24" height="36" alt="Halal Connect" style="display:block;border:0;width:24px;height:36px;object-fit:contain;"/></td>
 <td style="font-size:12px;color:#8b83a0;font-family:Arial,Helvetica,sans-serif;">Halal Connect</td>
 </tr></table></div>`;
   }
@@ -90,7 +92,7 @@ export function renderEmailHtml(input: {
   <tr><td style="background:linear-gradient(135deg,#7c3aed 0%,#a855f7 55%,#ffffff 160%);padding:24px 32px;">
     <table role="presentation" cellpadding="0" cellspacing="0"><tr>
       <td style="padding-right:12px;vertical-align:middle;">
-        <img src="${EMAIL_LOGO_URL}" width="48" height="72" alt="Halal Connect" style="display:block;border:0;width:48px;height:72px;object-fit:contain;background:transparent;"/>
+        <img src="${logoUrl}" width="48" height="72" alt="Halal Connect" style="display:block;border:0;width:48px;height:72px;object-fit:contain;background:transparent;"/>
       </td>
       <td style="vertical-align:middle;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">
         <div style="font-size:20px;font-weight:700;color:#ffffff;letter-spacing:-0.2px;">Halal Connect</div>
