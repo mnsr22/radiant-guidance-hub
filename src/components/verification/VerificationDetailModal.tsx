@@ -128,7 +128,22 @@ export function VerificationDetailModal({
   }
 
   if (!verification) {
-    return null;
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Couldn't load this member</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            The verification details could not be loaded from the server. Check your connection and try again.
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
+            <Button onClick={fetchVerificationData}>Try again</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
   }
 
   const statusColors: Record<string, string> = {

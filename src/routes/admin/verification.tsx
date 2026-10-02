@@ -18,6 +18,7 @@ function VerificationPage() {
   const [users, setUsers] = useState<VerificationUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({
     status: 'pending',
@@ -30,6 +31,7 @@ function VerificationPage() {
   const fetchVerifications = useCallback(async () => {
     try {
       setLoading(true);
+      setLoadError(null);
       const offset = (page - 1) * ITEMS_PER_PAGE;
       const result = await verificationApi.getPendingVerifications({
         type: filters.type,
@@ -42,7 +44,9 @@ function VerificationPage() {
       setTotal(result.total);
     } catch (error) {
       console.error('Failed to fetch verifications:', error);
-      toast.error('Failed to load verification queue');
+      setLoadError(error instanceof Error ? error.message : 'Unknown error');
+      setUsers([]);
+      toast.error(error instanceof Error ? error.message : 'Failed to load verification queue');
     } finally {
       setLoading(false);
     }
@@ -127,6 +131,15 @@ function VerificationPage() {
         onFilterChange={handleFilterChange}
         loading={loading}
       />
+
+      {loadError && (
+        <Card className="border-destructive/40 bg-destructive/5">
+          <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-destructive">Couldn't load the queue: {loadError}</p>
+            <Button size="sm" variant="outline" onClick={() => fetchVerifications()}>Try again</Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Table */}
       <VerificationQueueTable
