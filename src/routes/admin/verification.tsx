@@ -42,7 +42,7 @@ function VerificationPage() {
       setTotal(result.total);
     } catch (error) {
       console.error('Failed to fetch verifications:', error);
-      toast.error('Failed to load verification queue');
+      toast.error(error instanceof Error ? error.message : 'Failed to load verification queue');
     } finally {
       setLoading(false);
     }
