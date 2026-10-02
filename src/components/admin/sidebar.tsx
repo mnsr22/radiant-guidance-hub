@@ -1,7 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, MessageSquare, Shield, Activity, Heart,
-  Settings, Moon, Bell, CreditCard, FileText, ChevronLeft, Send, Megaphone, Inbox, Receipt, CircleDot, LifeBuoy, ShieldCheck, BarChart3, Mail, BadgeCheck, Images, ClipboardCheck, TicketPercent, LineChart,
+  Settings, Moon, Bell, CreditCard, FileText, ChevronLeft, Send, Megaphone, Inbox, Receipt, CircleDot, LifeBuoy, ShieldCheck, BarChart3, Mail, BadgeCheck, Images, ClipboardCheck, TicketPercent, LineChart, Wallet, Gift, Banknote,
 } from "lucide-react";
 
 
@@ -33,6 +33,9 @@ export const adminNav = [
   { to: "/monetization", label: "Monetization", icon: CreditCard },
   { to: "/subscriptions", label: "Subscriptions", icon: Receipt },
   { to: "/discounts", label: "Discount Codes", icon: TicketPercent },
+  { to: "/payments", label: "Payment Gateway", icon: Wallet },
+  { to: "/gifts", label: "Gifts", icon: Gift },
+  { to: "/withdrawals", label: "Withdrawals", icon: Banknote },
   { to: "/reports", label: "Reports & Exports", icon: BarChart3 },
   { to: "/logs", label: "Audit Logs", icon: FileText },
 
