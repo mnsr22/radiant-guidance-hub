@@ -42,7 +42,11 @@ export const sendAdminEmail = createServerFn({ method: "POST" })
     const results: { email: string; ok: boolean; error?: string }[] = [];
 
     for (const recipient of data.recipients) {
-      const html = renderEmailHtml({ ...data, name: recipient.name });
+      const html = renderEmailHtml({
+        ...data,
+        name: recipient.name,
+        logoUrl: "cid:halal-connect-logo",
+      });
       try {
         const response = await fetch(`${GATEWAY_URL}/emails`, {
           method: "POST",
