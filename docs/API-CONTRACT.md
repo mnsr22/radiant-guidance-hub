@@ -155,3 +155,38 @@ Public/safe in the app: `VITE_API_URL`, Stripe publishable key, Firebase client 
 8. Islamic — prayer times, qibla, duas, Tasbih counter with streaks and badges
 9. Billing — plans, checkout, redeem discount code, manage subscription
 10. Settings — notifications, privacy, support ticket, delete account
+
+---
+
+## 14. Payments via Pesapal (switchable from the dashboard, no app update)
+
+The app never talks to Pesapal directly and never holds keys. It calls your backend, which reads the active gateway settings from the database on every request. So changing keys, test/live mode, currency or API address in **Dashboard → Payment Gateway** takes effect on the next payment.
+
+Admin: `GET /admin/payments/config` (returns settings + `hasCredentials`, never the keys), `PATCH /admin/payments/config` `{environment, enabled, currency, apiBaseUrl, ipnId, callbackUrl, consumerKey?, consumerSecret?}` (keys encrypted at rest), `POST /admin/payments/test` → `{ok, message}`.
+
+App:
+- `GET /payments/config` → `{enabled, currency, provider}` (public info only — use it to show/hide pay buttons)
+- `POST /billing/checkout` `{planId}` and `POST /gifts/purchase` `{giftId, quantity}` → `{orderId, redirectUrl}`. Open `redirectUrl` in an in-app WebView. Pesapal sends the member back to `callbackUrl`; close the WebView when that URL loads.
+- `GET /payments/orders/:orderId` → `{status: pending|completed|failed}` — poll after the WebView closes.
+Backend flow: `POST {apiBaseUrl}/api/Auth/RequestToken` → `POST /api/Transactions/SubmitOrderRequest` (with `notification_id = ipnId`) → IPN arrives at `POST /api/public/webhooks/pesapal` → backend confirms with `GET /api/Transactions/GetTransactionStatus?orderTrackingId=` before granting the plan/gift (never trust the IPN alone).
+
+## 15. Gifts, wallet & withdrawals
+
+Members buy gifts (paid via §14), keep them in an inventory, and send them to any member. The receiver's wallet is credited with the gift's `payoutValue` (the platform keeps price − payoutValue). Once the balance reaches the admin-set minimum, they can request a withdrawal; an admin pays manually, then marks it paid.
+
+App:
+- `GET /gifts` → active catalogue `[{id, name, emoji, imageUrl, price, currency}]`
+- `POST /gifts/purchase` `{giftId, quantity}` → checkout (§14)
+- `GET /gifts/inventory` → gifts owned, not yet sent
+- `POST /gifts/send` `{giftId, recipientId, message?}` → recipient gets `gift:received` socket event + push
+- `GET /gifts/received` · `GET /gifts/sent`
+- `GET /wallet` → `{balance, pendingWithdrawal, minWithdrawal, currency, canWithdraw}`
+- `GET /wallet/transactions`
+- `POST /wallet/withdrawals` `{amount, method: mtn|airtel|bank, accountName, accountNumber}` — server checks `amount ≤ balance` and `balance ≥ minWithdrawal`, moves amount to "on hold", status `pending`
+- `GET /wallet/withdrawals` → `[{id, amount, status: pending|paid|rejected, reference, reason, createdAt}]`; socket `withdrawal:updated`
+
+Admin: `GET/POST /admin/gifts`, `PATCH/DELETE /admin/gifts/:id`, `PATCH /admin/wallet/settings` `{minWithdrawal}`, `GET /admin/withdrawals?status`, `PATCH /admin/withdrawals/:id` `{status: paid, reference}` or `{status: rejected, reason}` (rejected returns the held amount to the balance). Every change writes an audit log row.
+
+App screens: Gift shop · My gifts (send to a profile/chat) · Gift button inside chat and profile · Wallet (balance, progress bar to minimum, history) · Withdraw form · Withdrawal status list (Pending → Paid with reference, or Rejected with reason).
+
+Prisma models to add: `PaymentConfig` (single row, encrypted key/secret), `PaymentOrder` (userId, kind plan|gift, refId, amount, pesapalTrackingId, status), `Gift`, `GiftInventory`, `GiftTransfer` (senderId, recipientId, giftId, payoutValue), `WalletEntry` (userId, amount ±, type credit|hold|release|payout), `Withdrawal` (userId, amount, method, account, status, reference, reason, handledById).
