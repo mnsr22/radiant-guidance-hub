@@ -75,10 +75,10 @@ function Overview() {
               size="sm"
               onClick={() => {
                 downloadCSV("halal-connect-overview", growthData);
-                toast.success("Overview exported to CSV");
+                toast.success("Overview exported to PDF");
               }}
             >
-              Export CSV
+              Export PDF
             </Button>
             <Button
               size="sm"
