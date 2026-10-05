@@ -173,10 +173,6 @@ function PhotoModerationPage() {
   );
 
   async function decide(id: string, status: PhotoStatus, reason?: string) {
-    if (sample) {
-      toast.error("Photo moderation is unavailable while sample rows are shown.");
-      return;
-    }
     try {
       await mutate(
         () => api(`/admin/photos/${id}`, { method: "PATCH", body: { status, reason } }),
@@ -190,11 +186,6 @@ function PhotoModerationPage() {
   }
 
   async function revoke(r: AccessRow) {
-    if (req.sample) {
-      toast.error("Access revocation is unavailable while sample rows are shown.");
-      setRevoking(null);
-      return;
-    }
     try {
       await req.mutate(
         () =>
@@ -235,8 +226,8 @@ function PhotoModerationPage() {
         <Card className="mb-4 border-amber-500/40 bg-amber-500/5">
           <CardContent className="flex flex-col gap-2 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
             <span>
-              {sample && "Photo rows are sample-only; moderation actions are disabled. "}
-              {req.sample && "Private-request rows are sample-only; revocation is disabled."}
+              {sample && "Photo rows are sample data; actions update locally until your server is live. "}
+              {req.sample && "Private-request rows are sample data."}
             </span>
             <Button
               size="sm"
@@ -338,7 +329,7 @@ function PhotoModerationPage() {
                             size="sm"
                             variant="ghost"
                             aria-label="Approve"
-                            disabled={sample || p.status === "approved"}
+                            disabled={p.status === "approved"}
                             onClick={() => decide(p.id, "approved")}
                           >
                             <Check className="h-4 w-4 text-emerald-600" />
@@ -347,7 +338,7 @@ function PhotoModerationPage() {
                             size="sm"
                             variant="ghost"
                             aria-label="Reject"
-                            disabled={sample || p.status === "rejected"}
+                            disabled={p.status === "rejected"}
                             onClick={() => {
                               setRejectReason("");
                               setRejecting(p);
@@ -412,7 +403,7 @@ function PhotoModerationPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      disabled={req.sample || r.status === "revoked" || r.status === "declined"}
+                      disabled={r.status === "revoked" || r.status === "declined"}
                       onClick={() => setRevoking(r)}
                     >
                       Revoke access
@@ -455,7 +446,7 @@ function PhotoModerationPage() {
               <DialogFooter className="gap-2">
                 <Button
                   variant="outline"
-                  disabled={sample}
+                  disabled={false}
                   onClick={() => {
                     setRejectReason("");
                     setRejecting(viewing);
@@ -465,7 +456,7 @@ function PhotoModerationPage() {
                   Reject
                 </Button>
                 <Button
-                  disabled={sample}
+                  disabled={false}
                   onClick={() => {
                     decide(viewing.id, "approved");
                     setViewing(null);
