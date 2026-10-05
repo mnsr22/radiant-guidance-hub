@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Gift, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -27,34 +27,56 @@ export const Route = createFileRoute("/gifts")({
   component: GiftsPage,
 });
 
-type GiftRow = { id: string; name: string; emoji: string; price: number; payoutValue: number; active: boolean };
+type GiftRow = { id: string; name: string; emoji: string; price: number; payoutValue: number; active: boolean; currency: string };
 
 const SAMPLE: GiftRow[] = [
-  { id: "g1", name: "Rose", emoji: "🌹", price: 2000, payoutValue: 1400, active: true },
-  { id: "g2", name: "Dates box", emoji: "🌴", price: 5000, payoutValue: 3500, active: true },
-  { id: "g3", name: "Oud perfume", emoji: "🧴", price: 20000, payoutValue: 14000, active: true },
-  { id: "g4", name: "Ring", emoji: "💍", price: 100000, payoutValue: 70000, active: false },
+  { id: "g1", name: "Rose", emoji: "🌹", price: 2000, payoutValue: 1400, active: true, currency: "UGX" },
+  { id: "g2", name: "Dates box", emoji: "🌴", price: 5000, payoutValue: 3500, active: true, currency: "UGX" },
+  { id: "g3", name: "Oud perfume", emoji: "🧴", price: 20000, payoutValue: 14000, active: true, currency: "UGX" },
+  { id: "g4", name: "Ring", emoji: "💍", price: 100000, payoutValue: 70000, active: false, currency: "UGX" },
 ];
 
-const empty: GiftRow = { id: "", name: "", emoji: "🎁", price: 0, payoutValue: 0, active: true };
+const empty: GiftRow = { id: "", name: "", emoji: "🎁", price: 0, payoutValue: 0, active: true, currency: "UGX" };
+
+function fromApi(row: any): GiftRow {
+  return {
+    id: String(row.id),
+    name: row.name ?? "",
+    emoji: row.image ?? "🎁",
+    price: Number(row.price ?? 0),
+    payoutValue: Number(row.cashValue ?? 0),
+    active: row.enabled !== false,
+    currency: row.currency ?? "UGX",
+  };
+}
+
+function toApi(row: GiftRow) {
+  return { name: row.name, image: row.emoji, price: row.price, cashValue: row.payoutValue, enabled: row.active, currency: row.currency };
+}
 
 function GiftsPage() {
-  const { rows, mutate, add, sample } = useRemoteList<GiftRow>("/admin/gifts", SAMPLE);
+  const { rows, mutate, add, sample } = useRemoteList<GiftRow>("/admin/gifts", SAMPLE, fromApi);
   const [edit, setEdit] = useState<GiftRow | null>(null);
   const [threshold, setThreshold] = useState(50000);
+
+  useEffect(() => {
+    api<{ minWithdrawal: number }>("/admin/wallet/settings")
+      .then((settings) => setThreshold(settings.minWithdrawal))
+      .catch(() => undefined);
+  }, []);
 
   async function saveGift() {
     if (!edit || !edit.name || edit.price <= 0) return toast.error("Name and price are required");
     if (edit.payoutValue > edit.price) return toast.error("Receiver value can't exceed the price");
     try {
       if (edit.id) {
-        await mutate(() => api(`/admin/gifts/${edit.id}`, { method: "PATCH", body: edit }), edit.id, edit);
+        await mutate(() => api(`/admin/gifts/${edit.id}`, { method: "PATCH", body: toApi(edit) }), edit.id, edit);
       } else {
-        const created = await api<GiftRow>("/admin/gifts", { method: "POST", body: { ...edit, id: undefined } }).catch((e) => {
+        const created = await api<any>("/admin/gifts", { method: "POST", body: toApi(edit) }).catch((e) => {
           if (!sample) throw e;
-          return { ...edit, id: `g${Date.now()}` };
+          return { ...toApi(edit), id: `g${Date.now()}` };
         });
-        add(created);
+        add(fromApi(created));
       }
       toast.success("Gift saved — visible in the app immediately");
       setEdit(null);
@@ -95,7 +117,7 @@ function GiftsPage() {
                     <TableCell>{g.payoutValue.toLocaleString()}</TableCell>
                     <TableCell>
                       <Switch checked={g.active} onCheckedChange={(v) =>
-                        mutate(() => api(`/admin/gifts/${g.id}`, { method: "PATCH", body: { active: v } }), g.id, { active: v })
+                        mutate(() => api(`/admin/gifts/${g.id}`, { method: "PATCH", body: { enabled: v } }), g.id, { active: v })
                           .then(() => toast.success(v ? "Gift shown in app" : "Gift hidden"))
                           .catch((e) => toast.error(e.message))} />
                     </TableCell>

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Download, Plus, TicketPercent, TrendingUp, Wallet } from "lucide-react";
 import { toast } from "sonner";
@@ -21,6 +21,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { downloadCSV } from "@/lib/csv";
+import { api } from "@/lib/api";
 
 export const Route = createFileRoute("/discounts")({
   head: () => ({
@@ -57,6 +58,7 @@ const seed: Discount[] = [
 
 function DiscountsPage() {
   const [rows, setRows] = useState<Discount[]>(seed);
+  const [loaded, setLoaded] = useState(false);
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState({
     code: "",
@@ -66,6 +68,23 @@ function DiscountsPage() {
     limit: "100",
     expires: "",
   });
+
+  useEffect(() => {
+    api<any[]>("/admin/discounts")
+      .then((items) => setRows(items.map((item) => ({
+        id: String(item.id),
+        code: item.code,
+        type: item.type,
+        value: Number(item.value),
+        plan: item.appliesTo === "all" ? "All plans" : item.appliesTo === "premium_yearly" ? "Premium yearly" : item.appliesTo === "vip_once" ? "VIP one-off" : "Premium monthly",
+        limit: Number(item.usageLimit ?? 0),
+        used: Number(item.usedCount ?? 0),
+        expires: item.expiresAt ? new Date(item.expiresAt).toISOString().slice(0, 10) : "No expiry",
+        active: item.active === true,
+      }))))
+      .catch(() => toast.error("Could not load discount codes from server"))
+      .finally(() => setLoaded(true));
+  }, []);
 
   const stats = useMemo(() => {
     const active = rows.filter((r) => r.active).length;
@@ -77,25 +96,36 @@ function DiscountsPage() {
     return { active, used, saved: Math.round(saved) };
   }, [rows]);
 
-  function create() {
+  async function create() {
     if (!draft.code.trim()) {
       toast.error("Give the code a name, e.g. RAMADAN30");
       return;
     }
-    setRows((r) => [
-      {
-        id: `dsc_${Date.now()}`,
+    try {
+      const created: any = await api("/admin/discounts", { method: "POST", body: {
         code: draft.code.trim().toUpperCase(),
         type: draft.type,
-        value: Number(draft.value) || 0,
-        plan: draft.plan,
-        limit: Number(draft.limit) || 0,
-        used: 0,
-        expires: draft.expires || "No expiry",
+        value: Number(draft.value),
+        appliesTo: draft.plan === "All plans" ? "all" : draft.plan === "VIP one-off" ? "vip_once" : draft.plan === "Premium yearly" ? "premium_yearly" : "premium_monthly",
+        usageLimit: Number(draft.limit) || null,
+        expiresAt: draft.expires || null,
         active: true,
-      },
-      ...r,
-    ]);
+      } });
+      setRows((r) => [{
+        id: String(created.id),
+        code: created.code,
+        type: created.type,
+        value: created.value,
+        plan: draft.plan,
+        limit: created.usageLimit ?? 0,
+        used: created.usedCount ?? 0,
+        expires: created.expiresAt ? new Date(created.expiresAt).toISOString().slice(0, 10) : "No expiry",
+        active: created.active,
+      }, ...r]);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not create discount code");
+      return;
+    }
     setOpen(false);
     setDraft({ code: "", type: "percent", value: "10", plan: "All plans", limit: "100", expires: "" });
     toast.success("Discount code created");
@@ -218,6 +248,7 @@ function DiscountsPage() {
         <StatCard label="Estimated discount given" value={`$${stats.saved.toLocaleString()}`} icon={Wallet} />
       </div>
 
+      {!loaded && <p className="mt-4 text-sm text-muted-foreground">Loading discount codes…</p>}
       <Card className="mt-6">
         <CardHeader>
           <CardTitle>All codes</CardTitle>
@@ -252,10 +283,12 @@ function DiscountsPage() {
                     <Switch
                       checked={r.active}
                       onCheckedChange={(v) => {
-                        setRows((list) =>
-                          list.map((x) => (x.id === r.id ? { ...x, active: v } : x)),
-                        );
-                        toast.success(v ? `${r.code} switched on` : `${r.code} switched off`);
+                        api(`/admin/discounts/${r.id}`, { method: "PATCH", body: { active: v } })
+                          .then(() => {
+                            setRows((list) => list.map((x) => (x.id === r.id ? { ...x, active: v } : x)));
+                            toast.success(v ? `${r.code} switched on` : `${r.code} switched off`);
+                          })
+                          .catch((error) => toast.error(error instanceof Error ? error.message : "Could not update code"));
                       }}
                     />
                   </TableCell>

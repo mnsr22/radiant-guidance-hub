@@ -89,7 +89,7 @@ function PaymentsPage() {
   async function test() {
     setTesting(true);
     try {
-      const r = await api<{ ok: boolean; message?: string }>("/admin/payments/test", { method: "POST" });
+      const r = await api<{ ok: boolean; message?: string }>("/admin/payments/test-connection", { method: "POST" });
       r.ok ? toast.success("Connected to Pesapal") : toast.error(r.message ?? "Pesapal rejected the keys");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Test failed");
@@ -145,7 +145,7 @@ function PaymentsPage() {
             <div className="space-y-2"><Label>Consumer secret</Label><Input type="password" autoComplete="off" value={secret} onChange={(e) => setSecret(e.target.value)} /></div>
             <p className="text-xs text-muted-foreground">
               Keys go straight to your server, are stored encrypted, and are never shown again or sent to the phone app.
-              Notification address to register in Pesapal: <code>https://admin.halalconnect.space/api/public/webhooks/pesapal</code>
+              Notification address to register in Pesapal: <code>https://admin.halalconnect.space/api/public/payments/pesapal/ipn</code>
             </p>
             <div className="flex gap-2">
               <Button onClick={save} disabled={saving}><Save className="mr-2 h-4 w-4" />{saving ? "Saving…" : "Save settings"}</Button>

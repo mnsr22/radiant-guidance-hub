@@ -13,7 +13,7 @@ import { Card, CardContent } from '@/components/ui/card';
 export interface VerificationFiltersProps {
   onFilterChange: (filters: {
     status?: string;
-    type?: 'phone' | 'identity';
+    type?: 'phone' | 'identity' | 'photo';
     search?: string;
   }) => void;
   loading?: boolean;
@@ -24,13 +24,13 @@ export function VerificationFilters({
   loading = false,
 }: VerificationFiltersProps) {
   const [status, setStatus] = useState('pending');
-  const [type, setType] = useState<'phone' | 'identity' | ''>('');
+  const [type, setType] = useState<'phone' | 'identity' | 'photo' | ''>('');
   const [search, setSearch] = useState('');
 
   const handleApplyFilters = () => {
     onFilterChange({
       status: status || undefined,
-      type: type ? (type as 'phone' | 'identity') : undefined,
+      type: type ? (type as 'phone' | 'identity' | 'photo') : undefined,
       search: search || undefined,
     });
   };
@@ -67,7 +67,7 @@ export function VerificationFilters({
 
           <div>
             <label className="text-sm font-medium block mb-2">Type</label>
-            <Select value={type} onValueChange={(v) => setType(v as 'identity' | 'phone' | '')}>
+            <Select value={type} onValueChange={(v) => setType(v as 'identity' | 'phone' | 'photo' | '')}>
               <SelectTrigger>
                 <SelectValue placeholder="All types" />
               </SelectTrigger>
@@ -75,6 +75,7 @@ export function VerificationFilters({
                 <SelectItem value="">All types</SelectItem>
                 <SelectItem value="phone">Phone Only</SelectItem>
                 <SelectItem value="identity">Identity Only</SelectItem>
+                <SelectItem value="photo">Profile Photo</SelectItem>
               </SelectContent>
             </Select>
           </div>

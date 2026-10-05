@@ -97,6 +97,21 @@ export type TasbihStats = {
   avgDailyUsers: number;
 };
 
+export type JourneySummary = {
+  participants: number;
+  totalSteps: number;
+  completedSteps: number;
+  completionRate: number;
+  steps: {
+    stepKey: string;
+    title: string;
+    position: number;
+    total: number;
+    completed: number;
+    completionRate: number;
+  }[];
+};
+
 export type TasbihLeader = {
   userId: string;
   name: string;
@@ -381,6 +396,9 @@ export const adminApi = createApi({
     // ── Match analytics ────────────────────────────────────
     getMatchStats: b.query<any, void>({ query: () => "/admin/matches/stats" }),
     getMatchGrowth: b.query<any[], void>({ query: () => "/admin/analytics/match-growth" }),
+    getJourneySummary: b.query<JourneySummary, void>({
+      query: () => "/admin/journey/summary",
+    }),
 
     // ── Logs ───────────────────────────────────────────────
     getLogs: b.query<AuditLog[], void>({
@@ -623,6 +641,7 @@ export const {
   useGetTransactionsQuery,
   useGetMatchStatsQuery,
   useGetMatchGrowthQuery,
+  useGetJourneySummaryQuery,
   useGetLogsQuery,
   useGetSettingsQuery,
   usePatchSettingsMutation,

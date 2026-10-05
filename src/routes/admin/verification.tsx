@@ -22,7 +22,7 @@ function VerificationPage() {
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({
     status: 'pending',
-    type: undefined as 'phone' | 'identity' | undefined,
+    type: undefined as 'phone' | 'identity' | 'photo' | undefined,
     search: undefined as string | undefined,
   });
 
@@ -71,7 +71,7 @@ function VerificationPage() {
         <div>
           <h1 className="text-3xl font-bold">Verification Queue</h1>
           <p className="text-muted-foreground mt-1">
-            Review and approve user phone and identity verifications
+            Review phone, identity, and profile photo submissions
           </p>
         </div>
         <Button

@@ -4,7 +4,9 @@ export type IdentityVerificationStatus = 'notSubmitted' | 'pending' | 'verified'
 export interface VerificationStatus {
   phoneStatus: PhoneVerificationStatus;
   identityStatus: IdentityVerificationStatus;
+  photoStatus: IdentityVerificationStatus;
   identitySubmission?: IdentitySubmission;
+  photoSubmission?: IdentitySubmission;
   phone?: string;
 }
 
@@ -35,6 +37,7 @@ export interface VerificationUser {
   phone?: string;
   phoneVerificationStatus: PhoneVerificationStatus;
   identityVerificationStatus: IdentityVerificationStatus;
+  photoVerificationStatus: IdentityVerificationStatus;
   lastSubmittedAt?: string;
   createdAt: string;
 }

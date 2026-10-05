@@ -44,7 +44,8 @@ export function VerificationDetailModal({
   const [verification, setVerification] = useState<VerificationStatus | null>(null);
   const [auditHistory, setAuditHistory] = useState<VerificationAuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [reviewing, setReviewing] = useState<'phone' | 'identity' | null>(null);
+  const [reviewing, setReviewing] = useState<'phone' | 'identity' | 'photo' | null>(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState<RejectionReason | 'Other' | ''>('');
   const [customReason, setCustomReason] = useState('');
 
@@ -53,6 +54,10 @@ export function VerificationDetailModal({
       fetchVerificationData();
     }
   }, [open, userId]);
+
+  useEffect(() => () => {
+    if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+  }, [photoPreviewUrl]);
 
   const fetchVerificationData = async () => {
     try {
@@ -63,11 +68,36 @@ export function VerificationDetailModal({
       ]);
       setVerification(verData);
       setAuditHistory(auditData);
+      const previewUrl = verData.photoSubmission
+        ? await verificationApi.getPhotoPreview(userId)
+        : null;
+      setPhotoPreviewUrl(previewUrl);
     } catch (error) {
       console.error('Failed to load verification data:', error);
       toast.error('Failed to load verification details');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePhotoReview = async (status: 'verified' | 'rejected') => {
+    if (status === 'rejected' && (!rejectionReason || (rejectionReason === 'Other' && !customReason.trim()))) {
+      toast.error('Please provide a reason for rejection');
+      return;
+    }
+    try {
+      setReviewing('photo');
+      const reason = rejectionReason === 'Other' ? customReason : rejectionReason;
+      await verificationApi.reviewPhotoVerification(userId, status, reason);
+      toast.success(`Profile photo ${status} successfully`);
+      await fetchVerificationData();
+      setRejectionReason('');
+      setCustomReason('');
+    } catch (error) {
+      console.error('Photo review failed:', error);
+      toast.error('Failed to process photo review');
+    } finally {
+      setReviewing(null);
     }
   };
 
@@ -343,6 +373,47 @@ export function VerificationDetailModal({
                     </div>
                   )}
                 </>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">Profile Photo Verification</CardTitle>
+                <Badge className={statusColors[verification.photoStatus]}>{verification.photoStatus}</Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {photoPreviewUrl && (
+                <img src={photoPreviewUrl} alt="Submitted profile verification selfie" className="max-h-96 w-full rounded-md border object-contain" />
+              )}
+              {verification.photoSubmission?.reason && (
+                <p className="text-sm text-muted-foreground">Previous review: {verification.photoSubmission.reason}</p>
+              )}
+              {verification.photoStatus === 'pending' && (
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="photo-reason">Reason (if rejecting)</Label>
+                    <Select value={rejectionReason} onValueChange={(value) => setRejectionReason(value as RejectionReason)}>
+                      <SelectTrigger id="photo-reason" className="mt-1"><SelectValue placeholder="Select reason" /></SelectTrigger>
+                      <SelectContent>
+                        {REJECTION_REASONS.map((reason) => <SelectItem key={reason} value={reason}>{reason}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {rejectionReason === 'Other' && (
+                    <Textarea placeholder="Explain the reason..." value={customReason} onChange={(event) => setCustomReason(event.target.value)} rows={3} />
+                  )}
+                  <div className="flex gap-2">
+                    <Button onClick={() => handlePhotoReview('verified')} disabled={reviewing === 'photo'} className="bg-green-600 hover:bg-green-700">
+                      Approve Photo
+                    </Button>
+                    <Button onClick={() => handlePhotoReview('rejected')} disabled={reviewing === 'photo' || !rejectionReason || (rejectionReason === 'Other' && !customReason.trim())} variant="destructive">
+                      Reject Photo
+                    </Button>
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/admin/layout";
 import { StatCard } from "@/components/admin/stat-card";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -9,23 +9,34 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter,
-  DialogHeader, DialogTitle, DialogTrigger,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  ChartContainer, ChartTooltip, ChartTooltipContent,
-} from "@/components/ui/chart";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 import { CircleDot, Flame, Trophy, Users, Plus, Download } from "lucide-react";
 import { toast } from "sonner";
 import { downloadCSV } from "@/lib/csv";
-import { mockUsers } from "@/lib/mock-data";
 import {
-  useTasbihStats, useTasbihWeekly, useTasbihLeaderboard,
-  useTasbihBadges, useTasbihSettings, useTasbihMutations,
+  useTasbihStats,
+  useTasbihWeekly,
+  useTasbihLeaderboard,
+  useTasbihBadges,
+  useTasbihSettings,
+  useTasbihMutations,
 } from "@/lib/admin-hooks";
 import type { TasbihBadge as ApiBadge, TasbihLeader } from "@/store/admin-api";
 
@@ -36,29 +47,15 @@ export const Route = createFileRoute("/tasbih")({
   }),
 });
 
-const weeklyCounts = [
-  { day: "Mon", sessions: 4820, users: 1240 },
-  { day: "Tue", sessions: 5210, users: 1380 },
-  { day: "Wed", sessions: 5640, users: 1510 },
-  { day: "Thu", sessions: 6020, users: 1620 },
-  { day: "Fri", sessions: 8240, users: 2180 },
-  { day: "Sat", sessions: 6480, users: 1740 },
-  { day: "Sun", sessions: 6120, users: 1660 },
-];
-
-type Badge = { id: string; name: string; threshold: number; type: "streak" | "count"; active: boolean };
-
-const initialBadges: Badge[] = [
-  { id: "b1", name: "First Dhikr", threshold: 1, type: "count", active: true },
-  { id: "b2", name: "7-Day Streak", threshold: 7, type: "streak", active: true },
-  { id: "b3", name: "30-Day Devotee", threshold: 30, type: "streak", active: true },
-  { id: "b4", name: "1,000 Dhikr", threshold: 1000, type: "count", active: true },
-  { id: "b5", name: "10,000 Dhikr", threshold: 10000, type: "count", active: false },
-];
+type Badge = {
+  id: string;
+  name: string;
+  threshold: number;
+  type: "streak" | "count";
+  active: boolean;
+};
 
 function TasbihPage() {
-  // Live data from /api/admin/tasbih/*; falls back to sample data until the
-  // backend endpoints are deployed so the page stays usable.
   const { data: stats } = useTasbihStats();
   const { data: weekly } = useTasbihWeekly();
   const { data: leaders } = useTasbihLeaderboard(20);
@@ -70,8 +67,11 @@ function TasbihPage() {
   const [dailyGoal, setDailyGoal] = useState([100]);
   const [requireAuth, setRequireAuth] = useState(true);
   const [offlineSync, setOfflineSync] = useState(true);
-  const [newBadge, setNewBadge] = useState({ name: "", threshold: 0, type: "streak" as Badge["type"] });
-  const [localBadges, setLocalBadges] = useState<Badge[]>(initialBadges);
+  const [newBadge, setNewBadge] = useState({
+    name: "",
+    threshold: 0,
+    type: "streak" as Badge["type"],
+  });
 
   // Adopt server settings once they arrive.
   useEffect(() => {
@@ -82,32 +82,21 @@ function TasbihPage() {
     setOfflineSync(settings.offlineSync);
   }, [settings]);
 
-  const weeklyData = weekly && weekly.length > 0 ? weekly : weeklyCounts;
-  const usingApiBadges = !!apiBadges && apiBadges.length > 0;
-  const badges: Badge[] = usingApiBadges
-    ? (apiBadges as ApiBadge[]).map((b) => ({
-        id: b.id, name: b.name, threshold: b.threshold, type: b.type, active: b.active,
-      }))
-    : localBadges;
-
-  const topUsers = useMemo(() => {
-    if (leaders && leaders.length > 0) {
-      return (leaders as TasbihLeader[]).map((l) => ({
-        id: l.userId,
-        name: l.name,
-        email: l.email,
-        streak: l.currentStreak,
-        total: l.totalCount,
-      }));
-    }
-    return mockUsers.slice(0, 12).map((u, i) => ({
-      id: u.id,
-      name: u.name,
-      email: u.email,
-      streak: 60 - i * 3,
-      total: 12400 - i * 720,
-    }));
-  }, [leaders]);
+  const weeklyData = weekly ?? [];
+  const badges: Badge[] = ((apiBadges ?? []) as ApiBadge[]).map((badge) => ({
+    id: badge.id,
+    name: badge.name,
+    threshold: badge.threshold,
+    type: badge.type,
+    active: badge.active,
+  }));
+  const topUsers = ((leaders ?? []) as TasbihLeader[]).map((leader) => ({
+    id: leader.userId,
+    name: leader.name,
+    email: leader.email,
+    streak: leader.currentStreak,
+    total: leader.totalCount,
+  }));
 
   const addBadge = () => {
     if (!newBadge.name || newBadge.threshold <= 0) {
@@ -117,10 +106,7 @@ function TasbihPage() {
     const draft = { name: newBadge.name, type: newBadge.type, threshold: newBadge.threshold };
     createBadge.mutate(draft, {
       onSuccess: () => toast.success("Badge created"),
-      onError: () => {
-        setLocalBadges((b) => [...b, { id: `b${Date.now()}`, ...draft, active: true }]);
-        toast.success("Badge created locally (API unavailable)");
-      },
+      onError: () => toast.error("Could not create badge"),
     });
     setNewBadge({ name: "", threshold: 0, type: "streak" });
   };
@@ -130,14 +116,8 @@ function TasbihPage() {
     if (!current) return;
     updateBadge.mutate(
       { id, active: !current.active },
-      {
-        onError: () =>
-          setLocalBadges((b) => b.map((x) => (x.id === id ? { ...x, active: !x.active } : x))),
-      },
+      { onError: () => toast.error("Could not update badge") },
     );
-    if (!usingApiBadges) {
-      setLocalBadges((b) => b.map((x) => (x.id === id ? { ...x, active: !x.active } : x)));
-    }
   };
 
   const saveRules = () => {
@@ -196,10 +176,26 @@ function TasbihPage() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Active Streaks" value={(stats?.activeStreaks ?? 8420).toLocaleString()} icon={Flame} delta={{ value: "+12.4%", positive: true }} />
-          <StatCard label="Sessions Today" value={(stats?.sessionsToday ?? 42318).toLocaleString()} icon={CircleDot} delta={{ value: "+8.1%", positive: true }} />
-          <StatCard label="Badges Awarded" value={(stats?.badgesAwarded ?? 1284).toLocaleString()} icon={Trophy} delta={{ value: "+3.2%", positive: true }} />
-          <StatCard label="Avg Daily Users" value={(stats?.avgDailyUsers ?? 1620).toLocaleString()} icon={Users} delta={{ value: "+5.6%", positive: true }} />
+          <StatCard
+            label="Active Streaks"
+            value={stats?.activeStreaks?.toLocaleString() ?? "—"}
+            icon={Flame}
+          />
+          <StatCard
+            label="Sessions Today"
+            value={stats?.sessionsToday?.toLocaleString() ?? "—"}
+            icon={CircleDot}
+          />
+          <StatCard
+            label="Badges Awarded"
+            value={stats?.badgesAwarded?.toLocaleString() ?? "—"}
+            icon={Trophy}
+          />
+          <StatCard
+            label="Avg Daily Users"
+            value={stats?.avgDailyUsers?.toLocaleString() ?? "—"}
+            icon={Users}
+          />
         </div>
 
         <Card>
@@ -208,34 +204,50 @@ function TasbihPage() {
             <CardDescription>Sessions and unique users per day</CardDescription>
           </CardHeader>
           <CardContent>
-            <ChartContainer
-              config={{
-                sessions: { label: "Sessions", color: "hsl(var(--chart-1))" },
-                users: { label: "Users", color: "hsl(var(--chart-2))" },
-              }}
-              className="h-[280px] w-full"
-            >
-              <ResponsiveContainer>
-                <AreaChart data={weeklyData}>
-                  <defs>
-                    <linearGradient id="s" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="u" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="day" />
-                  <YAxis />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Area type="monotone" dataKey="sessions" stroke="hsl(var(--chart-1))" fill="url(#s)" />
-                  <Area type="monotone" dataKey="users" stroke="hsl(var(--chart-2))" fill="url(#u)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </ChartContainer>
+            {weeklyData.length === 0 ? (
+              <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
+                No weekly Tasbih activity is available yet.
+              </div>
+            ) : (
+              <ChartContainer
+                config={{
+                  sessions: { label: "Sessions", color: "hsl(var(--chart-1))" },
+                  users: { label: "Users", color: "hsl(var(--chart-2))" },
+                }}
+                className="h-[280px] w-full"
+              >
+                <ResponsiveContainer>
+                  <AreaChart data={weeklyData}>
+                    <defs>
+                      <linearGradient id="s" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.4} />
+                        <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="u" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.4} />
+                        <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="day" />
+                    <YAxis />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Area
+                      type="monotone"
+                      dataKey="sessions"
+                      stroke="hsl(var(--chart-1))"
+                      fill="url(#s)"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="users"
+                      stroke="hsl(var(--chart-2))"
+                      fill="url(#u)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            )}
           </CardContent>
         </Card>
 
@@ -248,29 +260,59 @@ function TasbihPage() {
             <CardContent className="space-y-5">
               <div className="space-y-2">
                 <Label>Daily Goal (count)</Label>
-                <Slider value={dailyGoal} onValueChange={setDailyGoal} min={10} max={500} step={10} />
-                <div className="text-xs text-muted-foreground">{dailyGoal[0]} dhikr / day to maintain a streak</div>
+                <Slider
+                  disabled={!settings}
+                  value={dailyGoal}
+                  onValueChange={setDailyGoal}
+                  min={10}
+                  max={500}
+                  step={10}
+                />
+                <div className="text-xs text-muted-foreground">
+                  {dailyGoal[0]} dhikr / day to maintain a streak
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>Grace Days per Month</Label>
-                <Slider value={streakGrace} onValueChange={setStreakGrace} min={0} max={5} step={1} />
-                <div className="text-xs text-muted-foreground">{streakGrace[0]} missed day(s) allowed without resetting</div>
+                <Slider
+                  disabled={!settings}
+                  value={streakGrace}
+                  onValueChange={setStreakGrace}
+                  min={0}
+                  max={5}
+                  step={1}
+                />
+                <div className="text-xs text-muted-foreground">
+                  {streakGrace[0]} missed day(s) allowed without resetting
+                </div>
               </div>
               <div className="flex items-center justify-between rounded-lg border p-3">
                 <div>
                   <div className="text-sm font-medium">Require Authentication</div>
-                  <div className="text-xs text-muted-foreground">Anonymous sessions won't count</div>
+                  <div className="text-xs text-muted-foreground">
+                    Anonymous sessions won't count
+                  </div>
                 </div>
-                <Switch checked={requireAuth} onCheckedChange={setRequireAuth} />
+                <Switch
+                  disabled={!settings}
+                  checked={requireAuth}
+                  onCheckedChange={setRequireAuth}
+                />
               </div>
               <div className="flex items-center justify-between rounded-lg border p-3">
                 <div>
                   <div className="text-sm font-medium">Offline Sync</div>
-                  <div className="text-xs text-muted-foreground">Buffer sessions and sync with idempotency keys</div>
+                  <div className="text-xs text-muted-foreground">
+                    Buffer sessions and sync with idempotency keys
+                  </div>
                 </div>
-                <Switch checked={offlineSync} onCheckedChange={setOfflineSync} />
+                <Switch
+                  disabled={!settings}
+                  checked={offlineSync}
+                  onCheckedChange={setOfflineSync}
+                />
               </div>
-              <Button onClick={saveRules} className="w-full">
+              <Button disabled={!settings} onClick={saveRules} className="w-full">
                 Save Rules
               </Button>
             </CardContent>
@@ -284,7 +326,9 @@ function TasbihPage() {
               </div>
               <Dialog>
                 <DialogTrigger asChild>
-                  <Button size="sm"><Plus className="h-4 w-4 mr-1" /> New</Button>
+                  <Button size="sm" disabled={apiBadges === undefined}>
+                    <Plus className="h-4 w-4 mr-1" /> New
+                  </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
@@ -306,7 +350,9 @@ function TasbihPage() {
                         <select
                           className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                           value={newBadge.type}
-                          onChange={(e) => setNewBadge({ ...newBadge, type: e.target.value as Badge["type"] })}
+                          onChange={(e) =>
+                            setNewBadge({ ...newBadge, type: e.target.value as Badge["type"] })
+                          }
                         >
                           <option value="streak">Streak (days)</option>
                           <option value="count">Count (total)</option>
@@ -317,7 +363,9 @@ function TasbihPage() {
                         <Input
                           type="number"
                           value={newBadge.threshold || ""}
-                          onChange={(e) => setNewBadge({ ...newBadge, threshold: Number(e.target.value) })}
+                          onChange={(e) =>
+                            setNewBadge({ ...newBadge, threshold: Number(e.target.value) })
+                          }
                         />
                       </div>
                     </div>
@@ -329,22 +377,32 @@ function TasbihPage() {
               </Dialog>
             </CardHeader>
             <CardContent className="space-y-2">
-              {badges.map((b) => (
-                <div key={b.id} className="flex items-center justify-between rounded-lg border p-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-primary text-primary-foreground">
-                      <Trophy className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium">{b.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {b.threshold.toLocaleString()} {b.type === "streak" ? "day streak" : "total dhikr"}
+              {badges.length === 0 ? (
+                <p className="py-4 text-sm text-muted-foreground">
+                  No achievement badges are configured.
+                </p>
+              ) : (
+                badges.map((b) => (
+                  <div
+                    key={b.id}
+                    className="flex items-center justify-between rounded-lg border p-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-primary text-primary-foreground">
+                        <Trophy className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium">{b.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {b.threshold.toLocaleString()}{" "}
+                          {b.type === "streak" ? "day streak" : "total dhikr"}
+                        </div>
                       </div>
                     </div>
+                    <Switch checked={b.active} onCheckedChange={() => toggleBadge(b.id)} />
                   </div>
-                  <Switch checked={b.active} onCheckedChange={() => toggleBadge(b.id)} />
-                </div>
-              ))}
+                ))
+              )}
             </CardContent>
           </Card>
         </div>
@@ -371,6 +429,16 @@ function TasbihPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
+                {topUsers.length === 0 && (
+                  <TableRow>
+                    <TableCell
+                      colSpan={5}
+                      className="py-8 text-center text-sm text-muted-foreground"
+                    >
+                      No Tasbih leaderboard data is available yet.
+                    </TableCell>
+                  </TableRow>
+                )}
                 {topUsers.map((u, i) => (
                   <TableRow key={u.id}>
                     <TableCell className="font-medium">{i + 1}</TableCell>

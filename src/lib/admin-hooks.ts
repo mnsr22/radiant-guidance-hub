@@ -48,6 +48,7 @@ import {
   useGetTransactionsQuery,
   useGetMatchStatsQuery,
   useGetMatchGrowthQuery,
+  useGetJourneySummaryQuery,
   useGetLogsQuery,
   useGetSettingsQuery,
   usePatchSettingsMutation,
@@ -297,6 +298,11 @@ export function useMatchStats() {
 }
 export function useMatchGrowth() {
   const { data, isLoading } = useGetMatchGrowthQuery();
+  return { data, isLoading };
+}
+
+export function useJourneySummary() {
+  const { data, isLoading } = useGetJourneySummaryQuery();
   return { data, isLoading };
 }
 

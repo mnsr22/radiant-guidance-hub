@@ -58,6 +58,7 @@ export function VerificationQueueTable({
               <TableHead>Phone</TableHead>
               <TableHead>Phone Status</TableHead>
               <TableHead>Identity Status</TableHead>
+              <TableHead>Photo Status</TableHead>
               <TableHead>Last Submitted</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
@@ -65,7 +66,7 @@ export function VerificationQueueTable({
           <TableBody>
             {users.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                   No users to verify
                 </TableCell>
               </TableRow>
@@ -84,6 +85,11 @@ export function VerificationQueueTable({
                   <TableCell>
                     <Badge className={statusColors[user.identityVerificationStatus]}>
                       {user.identityVerificationStatus}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={statusColors[user.photoVerificationStatus]}>
+                      {user.photoVerificationStatus}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-sm text-gray-600">

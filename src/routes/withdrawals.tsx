@@ -30,7 +30,7 @@ export const Route = createFileRoute("/withdrawals")({
   component: WithdrawalsPage,
 });
 
-type Status = "pending" | "paid" | "rejected";
+type Status = "pending" | "approved" | "paid" | "rejected";
 type Row = { id: string; member: string; amount: number; method: string; account: string; requested: string; status: Status; reference?: string; reason?: string };
 
 const SAMPLE: Row[] = [
@@ -51,7 +51,7 @@ function WithdrawalsPage() {
     member: r.user?.name ?? r.member ?? "Member",
     amount: Number(r.amount),
     method: r.method,
-    account: r.account ?? r.accountMasked ?? "",
+    account: r.account ?? r.accountMasked ?? (r.details?.phone ?? r.details?.account ?? ""),
     requested: r.createdAt ? new Date(r.createdAt).toLocaleString() : "",
     status: r.status,
     reference: r.reference,
@@ -67,7 +67,8 @@ function WithdrawalsPage() {
 
   async function decide(r: Row, status: Status, extra: Partial<Row>) {
     try {
-      await mutate(() => api(`/admin/withdrawals/${r.id}`, { method: "PATCH", body: { status, ...extra } }), r.id, { status, ...extra });
+      const action = status === "approved" ? "approve" : status === "paid" ? "mark-paid" : "reject";
+      await mutate(() => api(`/admin/withdrawals/${r.id}/${action}`, { method: "POST", body: extra }), r.id, { status, ...extra });
       toast.success(status === "paid" ? "Marked paid — member notified in the app" : "Request rejected — amount returned to member's balance");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Action failed");
@@ -85,7 +86,7 @@ function WithdrawalsPage() {
       <Card>
         <CardContent className="pt-6">
           <Tabs value={tab} onValueChange={(v) => setTab(v as Status)}>
-            <TabsList><TabsTrigger value="pending">Pending</TabsTrigger><TabsTrigger value="paid">Paid</TabsTrigger><TabsTrigger value="rejected">Rejected</TabsTrigger></TabsList>
+            <TabsList><TabsTrigger value="pending">Pending</TabsTrigger><TabsTrigger value="approved">Approved</TabsTrigger><TabsTrigger value="paid">Paid</TabsTrigger><TabsTrigger value="rejected">Rejected</TabsTrigger></TabsList>
           </Tabs>
           <div className="mt-4 overflow-x-auto">
             <Table>
@@ -103,9 +104,11 @@ function WithdrawalsPage() {
                     <TableCell className="text-right whitespace-nowrap">
                       {r.status === "pending" ? (
                         <>
-                          <Button size="sm" onClick={() => { setRef(""); setPaying(r); }}>Mark paid</Button>
+                          <Button size="sm" onClick={() => decide(r, "approved", {})}>Approve</Button>
                           <Button size="sm" variant="ghost" onClick={() => { setReason(""); setRejecting(r); }}><XCircle className="h-4 w-4 text-destructive" /></Button>
                         </>
+                      ) : r.status === "approved" ? (
+                        <Button size="sm" onClick={() => { setRef(""); setPaying(r); }}>Mark paid</Button>
                       ) : <span className="text-xs text-muted-foreground">{r.reason ?? "Done"}</span>}
                     </TableCell>
                   </TableRow>

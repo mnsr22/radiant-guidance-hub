@@ -1,34 +1,57 @@
-import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
-  Area, AreaChart, Bar, BarChart, CartesianGrid, Legend, Line, LineChart,
-  ResponsiveContainer, Tooltip, XAxis, YAxis,
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from "recharts";
-import { Activity, Download, TrendingUp, Users, Wallet } from "lucide-react";
+import { Activity, Download, Heart, UserPlus, Users } from "lucide-react";
 
 import { AdminLayout, PageHeader } from "@/components/admin/layout";
 import { StatCard } from "@/components/admin/stat-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { downloadCSV } from "@/lib/csv";
-import { mockUsers } from "@/lib/mock-data";
+import {
+  useBillingRevenue,
+  useBillingStats,
+  useGrowth,
+  useMatchGrowth,
+  useMatchStats,
+  useStats,
+  useWeeklyActivity,
+} from "@/lib/admin-hooks";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/analytics")({
   head: () => ({
     meta: [
       { title: "Analytics — Halal Connect Admin" },
-      { name: "description", content: "DAU/MAU, retention, revenue and feature adoption analytics for Halal Connect." },
+      {
+        name: "description",
+        content: "Live signup, weekly activity, revenue, and match analytics for Halal Connect.",
+      },
       { property: "og:title", content: "Analytics — Halal Connect Admin" },
-      { property: "og:description", content: "DAU/MAU, retention, revenue and feature adoption analytics for Halal Connect." },
+      {
+        property: "og:description",
+        content: "Live signup, weekly activity, revenue, and match analytics for Halal Connect.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -36,208 +59,254 @@ export const Route = createFileRoute("/analytics")({
   component: AnalyticsPage,
 });
 
-const RANGES = { "7d": 7, "30d": 30, "90d": 90 } as const;
-type RangeKey = keyof typeof RANGES;
+type MonthlyCount = { month: string; count: number };
+type WeeklyActivity = { day: string; messages: number; matches: number };
+type MonthlyRevenue = { month: string; currency: string; revenueAmount: number };
 
-function seriesFor(days: number) {
-  return Array.from({ length: days }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (days - 1 - i));
-    const base = 1200 + Math.round(Math.sin(i / 4) * 120) + i * 6;
-    return {
-      date: d.toISOString().slice(5, 10),
-      dau: base,
-      mau: 8200 + i * 22,
-      messages: base * 6 + Math.round(Math.cos(i / 3) * 400),
-      likes: base * 3,
-      matches: Math.round(base / 7),
-    };
+const REVENUE_COLORS = ["hsl(var(--primary))", "#22c55e", "#f59e0b", "#0ea5e9", "#ef4444"];
+
+function monthLabel(value: string) {
+  const [year, month] = value.split("-").map(Number);
+  return new Date(year, month - 1, 1).toLocaleString("en", {
+    month: "short",
+    year: "2-digit",
   });
 }
 
-const revenueSeries = Array.from({ length: 12 }, (_, i) => ({
-  month: new Date(2026, i, 1).toLocaleString("en", { month: "short" }),
-  mrr: 4200 + i * 380,
-  vip: 900 + (i % 4) * 260,
-  refunds: 120 + (i % 3) * 45,
-}));
-
-const adoption = [
-  { feature: "Tasbih counter", pct: 62 },
-  { feature: "Prayer times", pct: 71 },
-  { feature: "Wali linked", pct: 28 },
-  { feature: "Health disclosure", pct: 17 },
-  { feature: "Marriage checklist", pct: 23 },
-  { feature: "Private photos", pct: 44 },
-];
-
-const cohorts = Array.from({ length: 6 }, (_, i) => {
-  const d = new Date(2026, 2 + i, 1);
-  const size = 480 + i * 55;
-  return {
-    cohort: d.toLocaleString("en", { month: "short", year: "numeric" }),
-    size,
-    w1: 100,
-    w2: 74 - i,
-    w4: 58 - i * 2,
-    w8: 41 - i * 2,
-    w12: 33 - i,
-  };
-});
-
 function AnalyticsPage() {
-  const [range, setRange] = useState<RangeKey>("30d");
-  const series = useMemo(() => seriesFor(RANGES[range]), [range]);
+  const { data: stats } = useStats();
+  const { data: growth } = useGrowth();
+  const { data: weekly } = useWeeklyActivity();
+  const { data: billingStats } = useBillingStats();
+  const { data: revenue } = useBillingRevenue();
+  const { data: matchStats } = useMatchStats();
+  const { data: matchGrowth } = useMatchGrowth();
 
-  const last = series[series.length - 1]!;
-  const stickiness = ((last.dau / last.mau) * 100).toFixed(1);
-  const premium = mockUsers.filter((u) => u.premium).length;
-  const arpu = (revenueSeries[revenueSeries.length - 1]!.mrr / Math.max(premium, 1)).toFixed(2);
+  const signupData = ((growth ?? []) as MonthlyCount[]).map((row) => ({
+    month: monthLabel(row.month),
+    signups: row.count,
+  }));
+  const weeklyData = (weekly ?? []) as WeeklyActivity[];
+  const revenueRows = (revenue ?? []) as MonthlyRevenue[];
+  const revenueCurrencies = [...new Set(revenueRows.map((row) => row.currency))];
+  const revenueByMonth = new Map<string, Record<string, string | number>>();
+  for (const row of revenueRows) {
+    const month = revenueByMonth.get(row.month) ?? { month: monthLabel(row.month) };
+    month[row.currency] = row.revenueAmount;
+    revenueByMonth.set(row.month, month);
+  }
+  const revenueData = [...revenueByMonth.values()];
+  const matchData = ((matchGrowth ?? []) as MonthlyCount[]).map((row) => ({
+    month: monthLabel(row.month),
+    matches: row.count,
+  }));
+  const matchFunnel = (matchStats?.funnel ?? []) as Array<{
+    stage: string;
+    count: number;
+  }>;
+  const latestSignupCount = signupData.at(-1)?.signups;
 
   return (
     <AdminLayout>
       <PageHeader
         title="Analytics"
-        description="Growth, engagement, retention and revenue across Halal Connect."
+        description="Live signup, activity, revenue, and match metrics from the Halal Connect API."
         actions={
           <div className="flex items-center gap-2">
-            <Select value={range} onValueChange={(v) => setRange(v as RangeKey)}>
-              <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7d">Last 7 days</SelectItem>
-                <SelectItem value="30d">Last 30 days</SelectItem>
-                <SelectItem value="90d">Last 90 days</SelectItem>
-              </SelectContent>
-            </Select>
             <Button
               variant="outline"
+              disabled={signupData.length === 0}
               onClick={() => {
-                const ok = downloadCSV(`halal-connect-analytics-${range}`, series);
-                toast[ok ? "success" : "error"](ok ? "Analytics exported" : "Nothing to export");
+                const ok = downloadCSV("halal-connect-monthly-signups", signupData);
+                toast[ok ? "success" : "error"](ok ? "Signups exported" : "Nothing to export");
               }}
             >
-              <Download className="h-4 w-4 mr-2" /> Export CSV
+              <Download className="h-4 w-4 mr-2" /> Export signups
             </Button>
           </div>
         }
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-6">
-        <StatCard label="Daily active users" value={last.dau.toLocaleString()} delta={{ value: "+4.8%", positive: true }} icon={Users} />
-        <StatCard label="Monthly active users" value={last.mau.toLocaleString()} delta={{ value: "+2.1%", positive: true }} icon={Activity} accent="success" />
-        <StatCard label="Stickiness (DAU/MAU)" value={`${stickiness}%`} icon={TrendingUp} accent="warning" />
-        <StatCard label="ARPU (premium)" value={`$${arpu}`} icon={Wallet} accent="primary" />
+        <StatCard
+          label="Total members"
+          value={Number(stats?.totalUsers ?? 0).toLocaleString()}
+          icon={Users}
+          accent="primary"
+        />
+        <StatCard
+          label="Signups this month"
+          value={latestSignupCount?.toLocaleString() ?? "—"}
+          icon={UserPlus}
+          accent="success"
+        />
+        <StatCard
+          label="Active subscriptions"
+          value={Number(billingStats?.activeSubs ?? 0).toLocaleString()}
+          icon={Activity}
+          accent="warning"
+        />
+        <StatCard
+          label="Match success rate"
+          value={matchStats ? `${matchStats.successRate}%` : "—"}
+          icon={Heart}
+          accent="primary"
+        />
       </div>
 
       <Tabs defaultValue="engagement">
         <TabsList className="mb-4 flex-wrap h-auto">
+          <TabsTrigger value="growth">Signups</TabsTrigger>
           <TabsTrigger value="engagement">Engagement</TabsTrigger>
           <TabsTrigger value="revenue">Revenue</TabsTrigger>
-          <TabsTrigger value="retention">Retention</TabsTrigger>
-          <TabsTrigger value="adoption">Feature adoption</TabsTrigger>
+          <TabsTrigger value="matches">Matches</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="growth">
+          <Card>
+            <CardHeader>
+              <CardTitle>Monthly signups</CardTitle>
+            </CardHeader>
+            <CardContent className="h-[300px]">
+              {signupData.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No signup history is available yet.</p>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={signupData}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="month" fontSize={12} />
+                    <YAxis allowDecimals={false} fontSize={12} />
+                    <Tooltip />
+                    <Area
+                      type="monotone"
+                      dataKey="signups"
+                      stroke="hsl(var(--primary))"
+                      fill="hsl(var(--primary) / 0.2)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="engagement" className="space-y-4">
           <Card>
-            <CardHeader><CardTitle>Active users</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle>Messages and matches per day</CardTitle>
+            </CardHeader>
             <CardContent className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={series}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="date" fontSize={12} />
-                  <YAxis fontSize={12} />
-                  <Tooltip />
-                  <Area type="monotone" dataKey="dau" stroke="hsl(var(--primary))" fill="hsl(var(--primary) / 0.2)" name="DAU" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader><CardTitle>Messages, likes and matches</CardTitle></CardHeader>
-            <CardContent className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={series}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="date" fontSize={12} />
-                  <YAxis fontSize={12} />
-                  <Tooltip />
-                  <Legend />
-                  <Line type="monotone" dataKey="messages" stroke="hsl(var(--primary))" dot={false} />
-                  <Line type="monotone" dataKey="likes" stroke="#a855f7" dot={false} />
-                  <Line type="monotone" dataKey="matches" stroke="#22c55e" dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
+              {weeklyData.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No recent activity is available yet.
+                </p>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={weeklyData}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="day" fontSize={12} />
+                    <YAxis allowDecimals={false} fontSize={12} />
+                    <Tooltip />
+                    <Legend />
+                    <Bar
+                      dataKey="messages"
+                      fill="hsl(var(--primary))"
+                      name="Messages"
+                      radius={[5, 5, 0, 0]}
+                    />
+                    <Bar dataKey="matches" fill="#22c55e" name="Matches" radius={[5, 5, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="revenue">
           <Card>
-            <CardHeader><CardTitle>MRR, one-off VIP and refunds</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle>Successful revenue by currency</CardTitle>
+            </CardHeader>
             <CardContent className="h-[340px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={revenueSeries}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="month" fontSize={12} />
-                  <YAxis fontSize={12} />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="mrr" fill="hsl(var(--primary))" name="MRR ($)" radius={[6, 6, 0, 0]} />
-                  <Bar dataKey="vip" fill="#a855f7" name="VIP one-off ($)" radius={[6, 6, 0, 0]} />
-                  <Bar dataKey="refunds" fill="#ef4444" name="Refunds ($)" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              {revenueData.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No successful payment history is available yet.
+                </p>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={revenueData}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="month" fontSize={12} />
+                    <YAxis fontSize={12} />
+                    <Tooltip />
+                    <Legend />
+                    {revenueCurrencies.map((currency, index) => (
+                      <Bar
+                        key={currency}
+                        dataKey={currency}
+                        fill={REVENUE_COLORS[index % REVENUE_COLORS.length]}
+                        name={currency}
+                        radius={[6, 6, 0, 0]}
+                      />
+                    ))}
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="retention">
+        <TabsContent value="matches" className="grid gap-4 lg:grid-cols-2">
           <Card>
-            <CardHeader><CardTitle>Cohort retention (%)</CardTitle></CardHeader>
-            <CardContent className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Cohort</TableHead><TableHead>Size</TableHead>
-                    <TableHead>W1</TableHead><TableHead>W2</TableHead>
-                    <TableHead>W4</TableHead><TableHead>W8</TableHead><TableHead>W12</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {cohorts.map((c) => (
-                    <TableRow key={c.cohort}>
-                      <TableCell className="font-medium">{c.cohort}</TableCell>
-                      <TableCell>{c.size}</TableCell>
-                      <TableCell>{c.w1}%</TableCell>
-                      <TableCell>{c.w2}%</TableCell>
-                      <TableCell>{c.w4}%</TableCell>
-                      <TableCell>{c.w8}%</TableCell>
-                      <TableCell>{c.w12}%</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <CardHeader>
+              <CardTitle>Monthly matches</CardTitle>
+            </CardHeader>
+            <CardContent className="h-[300px]">
+              {matchData.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No match history is available yet.</p>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={matchData}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="month" fontSize={12} />
+                    <YAxis allowDecimals={false} fontSize={12} />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="matches" stroke="#22c55e" dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="adoption">
           <Card>
-            <CardHeader><CardTitle>Feature adoption</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle>Match funnel</CardTitle>
+            </CardHeader>
             <CardContent className="space-y-4">
-              {adoption.map((a) => (
-                <div key={a.feature}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span>{a.feature}</span>
-                    <span className="text-muted-foreground">{a.pct}%</span>
+              {matchFunnel.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No match funnel data is available yet.
+                </p>
+              ) : (
+                matchFunnel.map((stage) => (
+                  <div
+                    key={stage.stage}
+                    className="flex items-center justify-between border-b pb-3 last:border-0"
+                  >
+                    <span className="text-sm">{stage.stage}</span>
+                    <span className="font-semibold tabular-nums">
+                      {stage.count.toLocaleString()}
+                    </span>
                   </div>
-                  <Progress value={a.pct} />
-                </div>
-              ))}
+                ))
+              )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+      <p className="mt-4 text-xs text-muted-foreground">
+        Cohort retention and feature adoption are not shown because the backend does not currently
+        collect those metrics.
+      </p>
     </AdminLayout>
   );
 }
