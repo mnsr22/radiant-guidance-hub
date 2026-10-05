@@ -29,10 +29,10 @@ export const Route = createFileRoute("/reports")({
       {
         name: "description",
         content:
-          "Build filtered Halal Connect reports on members, subscriptions, support and notifications, then export branded PDF or CSV.",
+          "Build filtered Halal Connect reports on members, subscriptions, support and notifications, then export branded PDF.",
       },
       { property: "og:title", content: "Reports & Exports — Halal Connect Admin" },
-      { property: "og:description", content: "Branded PDF and CSV reporting for Halal Connect." },
+      { property: "og:description", content: "Branded PDF reporting for Halal Connect." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -202,7 +202,7 @@ function ReportsPage() {
       built.columns,
     );
     setBusy(null);
-    ok ? toast.success("CSV downloaded") : toast.error("Export failed");
+    ok ? toast.success("PDF downloaded") : toast.error("Export failed");
   }
 
   async function exportPdf() {
@@ -249,7 +249,7 @@ function ReportsPage() {
     <AdminLayout>
       <PageHeader
         title="Reports & Exports"
-        description="Filter any dataset, then export a branded PDF or a spreadsheet-ready CSV."
+        description="Filter any dataset, then export a branded PDF."
       />
 
       <div className="grid gap-4 lg:grid-cols-4">
@@ -326,7 +326,7 @@ function ReportsPage() {
                 {busy === "pdf" ? "Generating…" : "Generate PDF report"}
               </Button>
               <Button variant="outline" className="w-full" onClick={exportCsv} disabled={busy !== null}>
-                <Download className="h-4 w-4 mr-2" /> Export CSV
+                <Download className="h-4 w-4 mr-2" /> Export PDF
               </Button>
             </div>
           </CardContent>

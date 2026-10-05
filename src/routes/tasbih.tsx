@@ -414,7 +414,7 @@ function TasbihPage() {
               <CardDescription>Top users by current streak</CardDescription>
             </div>
             <Button variant="outline" size="sm" onClick={exportLeaderboard}>
-              <Download className="h-4 w-4 mr-1" /> Export CSV
+              <Download className="h-4 w-4 mr-1" /> Export PDF
             </Button>
           </CardHeader>
           <CardContent>

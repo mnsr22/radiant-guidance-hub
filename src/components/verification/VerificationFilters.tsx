@@ -67,12 +67,12 @@ export function VerificationFilters({
 
           <div>
             <label className="text-sm font-medium block mb-2">Type</label>
-            <Select value={type} onValueChange={(v) => setType(v as 'identity' | 'phone' | 'photo' | '')}>
+            <Select value={type || "all"} onValueChange={(v) => setType(v === "all" ? "" : (v as "identity" | "phone" | "photo"))}>
               <SelectTrigger>
                 <SelectValue placeholder="All types" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All types</SelectItem>
+                <SelectItem value="all">All types</SelectItem>
                 <SelectItem value="phone">Phone Only</SelectItem>
                 <SelectItem value="identity">Identity Only</SelectItem>
                 <SelectItem value="photo">Profile Photo</SelectItem>

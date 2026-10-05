@@ -143,7 +143,7 @@ function TicketsTab() {
               </CardDescription>
             </div>
             <Button variant="outline" size="sm" onClick={exportCsv}>
-              <Download className="h-4 w-4 mr-1" /> Export CSV
+              <Download className="h-4 w-4 mr-1" /> Export PDF
             </Button>
           </div>
         </CardHeader>
@@ -480,7 +480,7 @@ function DeletionsTab() {
               </SelectContent>
             </Select>
             <Button variant="outline" size="sm" onClick={exportCsv}>
-              <Download className="h-4 w-4 mr-1" /> Export CSV
+              <Download className="h-4 w-4 mr-1" /> Export PDF
             </Button>
           </div>
         </div>

@@ -132,7 +132,7 @@ function UsersPage() {
       "id", "name", "email", "age", "gender", "country", "city",
       "practice", "madhab", "status", "verified", "premium", "completeness", "joined",
     ]);
-    toast.success(`Exported ${users.length} users on this page to CSV`);
+    toast.success(`Exported ${users.length} users on this page to PDF`);
   }
 
   function resetForm() {
