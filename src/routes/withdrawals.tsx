@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Banknote, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { Banknote, CheckCircle2, Clock, Copy, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { AdminLayout, PageHeader } from "@/components/admin/layout";
 import { StatCard } from "@/components/admin/stat-card";
@@ -31,12 +31,12 @@ export const Route = createFileRoute("/withdrawals")({
 });
 
 type Status = "pending" | "approved" | "paid" | "rejected";
-type Row = { id: string; member: string; amount: number; method: string; account: string; requested: string; status: Status; reference?: string; reason?: string };
+type Row = { id: string; member: string; amount: number; method: string; account: string; accountName?: string; requested: string; status: Status; reference?: string; reason?: string };
 
 const SAMPLE: Row[] = [
-  { id: "w1", member: "Aisha N.", amount: 64000, method: "MTN Mobile Money", account: "+256 77• ••• 812", requested: "Today", status: "pending" },
-  { id: "w2", member: "Yusuf K.", amount: 120000, method: "Airtel Money", account: "+256 70• ••• 330", requested: "Yesterday", status: "pending" },
-  { id: "w3", member: "Maryam S.", amount: 52000, method: "Bank", account: "Stanbic ••4410", requested: "3 days ago", status: "paid", reference: "MM8812" },
+  { id: "w1", member: "Aisha N.", amount: 64000, method: "MTN Mobile Money", account: "+256 772 456 812", accountName: "Aisha Nakato", requested: "Today", status: "pending" },
+  { id: "w2", member: "Yusuf K.", amount: 120000, method: "Airtel Money", account: "+256 701 883 330", accountName: "Yusuf Kato", requested: "Yesterday", status: "pending" },
+  { id: "w3", member: "Maryam S.", amount: 52000, method: "Bank — Stanbic", account: "903001234410", accountName: "Maryam Ssempala", requested: "3 days ago", status: "paid", reference: "MM8812" },
 ];
 
 const tone: Record<Status, string> = {
