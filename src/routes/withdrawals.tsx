@@ -41,6 +41,7 @@ const SAMPLE: Row[] = [
 
 const tone: Record<Status, string> = {
   pending: "bg-amber-500/15 text-amber-600",
+  approved: "bg-primary/15 text-primary",
   paid: "bg-emerald-500/15 text-emerald-600",
   rejected: "bg-destructive/15 text-destructive",
 };
