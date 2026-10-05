@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Banknote, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { Banknote, CheckCircle2, Clock, Copy, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { AdminLayout, PageHeader } from "@/components/admin/layout";
 import { StatCard } from "@/components/admin/stat-card";
@@ -31,12 +31,12 @@ export const Route = createFileRoute("/withdrawals")({
 });
 
 type Status = "pending" | "approved" | "paid" | "rejected";
-type Row = { id: string; member: string; amount: number; method: string; account: string; requested: string; status: Status; reference?: string; reason?: string };
+type Row = { id: string; member: string; amount: number; method: string; account: string; accountName?: string; requested: string; status: Status; reference?: string; reason?: string };
 
 const SAMPLE: Row[] = [
-  { id: "w1", member: "Aisha N.", amount: 64000, method: "MTN Mobile Money", account: "+256 77• ••• 812", requested: "Today", status: "pending" },
-  { id: "w2", member: "Yusuf K.", amount: 120000, method: "Airtel Money", account: "+256 70• ••• 330", requested: "Yesterday", status: "pending" },
-  { id: "w3", member: "Maryam S.", amount: 52000, method: "Bank", account: "Stanbic ••4410", requested: "3 days ago", status: "paid", reference: "MM8812" },
+  { id: "w1", member: "Aisha N.", amount: 64000, method: "MTN Mobile Money", account: "+256 772 456 812", accountName: "Aisha Nakato", requested: "Today", status: "pending" },
+  { id: "w2", member: "Yusuf K.", amount: 120000, method: "Airtel Money", account: "+256 701 883 330", accountName: "Yusuf Kato", requested: "Yesterday", status: "pending" },
+  { id: "w3", member: "Maryam S.", amount: 52000, method: "Bank — Stanbic", account: "903001234410", accountName: "Maryam Ssempala", requested: "3 days ago", status: "paid", reference: "MM8812" },
 ];
 
 const tone: Record<Status, string> = {
@@ -52,7 +52,8 @@ function WithdrawalsPage() {
     member: r.user?.name ?? r.member ?? "Member",
     amount: Number(r.amount),
     method: r.method,
-    account: r.account ?? r.accountMasked ?? (r.details?.phone ?? r.details?.account ?? ""),
+    account: r.details?.phone ?? r.details?.account ?? r.account ?? r.accountMasked ?? "",
+    accountName: r.details?.accountName ?? r.accountName ?? r.user?.name,
     requested: r.createdAt ? new Date(r.createdAt).toLocaleString() : "",
     status: r.status,
     reference: r.reference,
@@ -99,7 +100,23 @@ function WithdrawalsPage() {
                   <TableRow key={r.id}>
                     <TableCell className="font-medium">{r.member}</TableCell>
                     <TableCell>{r.amount.toLocaleString()}</TableCell>
-                    <TableCell className="text-sm">{r.method}<div className="text-xs text-muted-foreground">{r.account}</div></TableCell>
+                    <TableCell className="text-sm">
+                      <div className="font-medium">{r.method}</div>
+                      <div className="flex items-center gap-1 font-mono text-xs">
+                        {r.account || "—"}
+                        {r.account && (
+                          <button
+                            type="button"
+                            aria-label="Copy account number"
+                            className="text-muted-foreground hover:text-foreground"
+                            onClick={() => { void navigator.clipboard?.writeText(r.account); toast.success("Account number copied"); }}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
+                      {r.accountName && <div className="text-xs text-muted-foreground">{r.accountName}</div>}
+                    </TableCell>
                     <TableCell className="text-sm text-muted-foreground">{r.requested}</TableCell>
                     <TableCell><Badge className={tone[r.status]}>{r.status}</Badge>{r.reference && <div className="text-xs text-muted-foreground">Ref {r.reference}</div>}</TableCell>
                     <TableCell className="text-right whitespace-nowrap">
