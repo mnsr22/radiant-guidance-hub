@@ -100,7 +100,23 @@ function WithdrawalsPage() {
                   <TableRow key={r.id}>
                     <TableCell className="font-medium">{r.member}</TableCell>
                     <TableCell>{r.amount.toLocaleString()}</TableCell>
-                    <TableCell className="text-sm">{r.method}<div className="text-xs text-muted-foreground">{r.account}</div></TableCell>
+                    <TableCell className="text-sm">
+                      <div className="font-medium">{r.method}</div>
+                      <div className="flex items-center gap-1 font-mono text-xs">
+                        {r.account || "—"}
+                        {r.account && (
+                          <button
+                            type="button"
+                            aria-label="Copy account number"
+                            className="text-muted-foreground hover:text-foreground"
+                            onClick={() => { void navigator.clipboard?.writeText(r.account); toast.success("Account number copied"); }}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
+                      {r.accountName && <div className="text-xs text-muted-foreground">{r.accountName}</div>}
+                    </TableCell>
                     <TableCell className="text-sm text-muted-foreground">{r.requested}</TableCell>
                     <TableCell><Badge className={tone[r.status]}>{r.status}</Badge>{r.reference && <div className="text-xs text-muted-foreground">Ref {r.reference}</div>}</TableCell>
                     <TableCell className="text-right whitespace-nowrap">
