@@ -123,7 +123,7 @@ Admin: `GET /admin/plans` + `POST/PATCH`, `GET /admin/subscriptions?search`, `GE
 App: `POST /devices` `{fcmToken, platform}`, `DELETE /devices/:token`, `GET /notifications`, `POST /notifications/:id/read`, `PATCH /notifications/preferences`.
 
 Admin: `POST /admin/notifications/broadcast` `{segment|userIds, title, body, deeplink, scheduleAt}`,
-`POST /admin/email/send` `{recipients:[{email,name}], subject, body, template: branded|plain, heading, ctaLabel, ctaUrl, preheader}` — one email per recipient, `{{name}}` personalised with a generic fallback, sender `Halal Connect <team@halalconnect.space>`.
+`POST /admin/email-campaigns` `{recipients:[{email,name}], subject, body, template: branded|plain, heading, ctaLabel, ctaUrl, preheader}` — admin-authenticated, one email per recipient through the backend SMTP mailer, with `{{name}}` personalised and an escaped generic fallback. Uses the same server-side SMTP configuration as OTP email.
 
 ---
 

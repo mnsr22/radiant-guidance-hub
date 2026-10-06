@@ -1,8 +1,18 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Mail, Search, Send, Eye, Users as UsersIcon, Crown, ShieldCheck, Ban, Clock, Loader2 } from "lucide-react";
+import {
+  Mail,
+  Search,
+  Send,
+  Eye,
+  Users as UsersIcon,
+  Crown,
+  ShieldCheck,
+  Ban,
+  Clock,
+  Loader2,
+} from "lucide-react";
 import { AdminLayout, PageHeader } from "@/components/admin/layout";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,11 +22,17 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useUsers } from "@/lib/admin-hooks";
+import { api } from "@/lib/api";
 import { renderEmailHtml } from "@/lib/email-template";
-import { sendAdminEmail } from "@/lib/email.functions";
 import type { MockUser } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/email")({
@@ -30,7 +46,10 @@ export const Route = createFileRoute("/email")({
           "Send branded Halal Connect emails to individual members or segments such as premium, verified, banned or pending users.",
       },
       { property: "og:title", content: "Email Campaigns — Halal Connect Admin" },
-      { property: "og:description", content: "Branded member emails and segment campaigns for Halal Connect." },
+      {
+        property: "og:description",
+        content: "Branded member emails and segment campaigns for Halal Connect.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -39,7 +58,10 @@ export const Route = createFileRoute("/email")({
 
 type Segment = "all" | "premium" | "verified" | "banned" | "pending";
 
-const segmentMeta: Record<Segment, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
+const segmentMeta: Record<
+  Segment,
+  { label: string; icon: React.ComponentType<{ className?: string }> }
+> = {
   all: { label: "All members", icon: UsersIcon },
   premium: { label: "Premium", icon: Crown },
   verified: { label: "Verified", icon: ShieldCheck },
@@ -78,7 +100,7 @@ const templates = {
 
 function EmailPage() {
   const { data: usersData } = useUsers();
-  const users: MockUser[] = usersData?.users ?? [];
+  const users: MockUser[] = useMemo(() => usersData?.users ?? [], [usersData?.users]);
 
   const [segment, setSegment] = useState<Segment>("all");
   const [q, setQ] = useState("");
@@ -95,18 +117,21 @@ function EmailPage() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [sending, setSending] = useState(false);
 
-  const send = useServerFn(sendAdminEmail);
-
   const list = useMemo(() => {
     const base = users.filter((u) =>
-      segment === "all" ? true
-      : segment === "premium" ? u.premium
-      : segment === "verified" ? u.verified
-      : u.status === segment,
+      segment === "all"
+        ? true
+        : segment === "premium"
+          ? u.premium
+          : segment === "verified"
+            ? u.verified
+            : u.status === segment,
     );
     if (!q.trim()) return base;
     const needle = q.toLowerCase();
-    return base.filter((u) => `${u.name} ${u.email} ${u.country} ${u.city}`.toLowerCase().includes(needle));
+    return base.filter((u) =>
+      `${u.name} ${u.email} ${u.country} ${u.city}`.toLowerCase().includes(needle),
+    );
   }, [users, segment, q]);
 
   const allSelected = list.length > 0 && list.every((u) => selected[u.id]);
@@ -122,7 +147,9 @@ function EmailPage() {
   );
 
   const recipients = useMemo(() => {
-    const picked = users.filter((u) => selected[u.id]).map((u) => ({ email: u.email, name: u.name }));
+    const picked = users
+      .filter((u) => selected[u.id])
+      .map((u) => ({ email: u.email, name: u.name }));
     const seen = new Set(picked.map((p) => p.email));
     return [...picked, ...manualRecipients.filter((m) => !seen.has(m.email))];
   }, [users, selected, manualRecipients]);
@@ -138,7 +165,10 @@ function EmailPage() {
   function toggleAll() {
     const next = { ...selected };
     if (allSelected) list.forEach((u) => delete next[u.id]);
-    else list.forEach((u) => { next[u.id] = true; });
+    else
+      list.forEach((u) => {
+        next[u.id] = true;
+      });
     setSelected(next);
   }
 
@@ -162,8 +192,12 @@ function EmailPage() {
     if (ctaLabel && !ctaUrl) return toast.error("Add a link for the button");
     setSending(true);
     try {
-      const result = await send({
-        data: {
+      const result = await api<{
+        sent: number;
+        failed: { email: string; error: string }[];
+      }>("/admin/email-campaigns", {
+        method: "POST",
+        body: {
           recipients,
           subject: subject.trim(),
           body: body.trim(),
@@ -173,9 +207,12 @@ function EmailPage() {
           ctaUrl: ctaUrl.trim() || undefined,
         },
       });
-      if (result.sent > 0) toast.success(`Email sent to ${result.sent} recipient${result.sent === 1 ? "" : "s"}`);
+      if (result.sent > 0)
+        toast.success(`Email sent to ${result.sent} recipient${result.sent === 1 ? "" : "s"}`);
       if (result.failed.length > 0) {
-        toast.error(`${result.failed.length} failed — ${result.failed[0]?.error ?? "unknown error"}`);
+        toast.error(
+          `${result.failed.length} failed — ${result.failed[0]?.error ?? "unknown error"}`,
+        );
       }
       if (result.sent > 0 && result.failed.length === 0) {
         setSelected({});
@@ -204,7 +241,11 @@ function EmailPage() {
               disabled={sending}
               className="bg-gradient-primary text-primary-foreground border-0 shadow-elegant"
             >
-              {sending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+              {sending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4 mr-2" />
+              )}
               Send to {recipients.length}
             </Button>
           </div>
@@ -229,7 +270,12 @@ function EmailPage() {
             </Tabs>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, email, country…" className="pl-9" />
+              <Input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search name, email, country…"
+                className="pl-9"
+              />
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Checkbox id="all-recipients" checked={allSelected} onCheckedChange={toggleAll} />
@@ -239,9 +285,16 @@ function EmailPage() {
             </div>
           </div>
           <div className="divide-y max-h-[380px] overflow-y-auto">
-            {list.length === 0 && <div className="p-8 text-center text-sm text-muted-foreground">No members in this segment.</div>}
+            {list.length === 0 && (
+              <div className="p-8 text-center text-sm text-muted-foreground">
+                No members in this segment.
+              </div>
+            )}
             {list.map((u) => (
-              <label key={u.id} className="flex items-center gap-3 p-3 hover:bg-muted/30 cursor-pointer">
+              <label
+                key={u.id}
+                className="flex items-center gap-3 p-3 hover:bg-muted/30 cursor-pointer"
+              >
                 <Checkbox
                   checked={!!selected[u.id]}
                   onCheckedChange={(v) => setSelected((s) => ({ ...s, [u.id]: !!v }))}
@@ -254,7 +307,9 @@ function EmailPage() {
                   </div>
                   <div className="text-xs text-muted-foreground truncate">{u.email}</div>
                 </div>
-                <Badge variant="secondary" className="text-xs">{u.status}</Badge>
+                <Badge variant="secondary" className="text-xs">
+                  {u.status}
+                </Badge>
               </label>
             ))}
           </div>
@@ -268,7 +323,9 @@ function EmailPage() {
               placeholder="wali@example.com, partner@example.com"
             />
             {manualRecipients.length > 0 && (
-              <p className="text-xs text-muted-foreground">{manualRecipients.length} valid address(es) added</p>
+              <p className="text-xs text-muted-foreground">
+                {manualRecipients.length} valid address(es) added
+              </p>
             )}
           </div>
         </Card>
@@ -277,8 +334,13 @@ function EmailPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Template</Label>
-              <Select value={templateKey} onValueChange={(v) => applyTemplate(v as keyof typeof templates)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select
+                value={templateKey}
+                onValueChange={(v) => applyTemplate(v as keyof typeof templates)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="custom">Custom message</SelectItem>
                   <SelectItem value="welcome">Welcome</SelectItem>
@@ -292,7 +354,9 @@ function EmailPage() {
             <div className="space-y-2">
               <Label>Design</Label>
               <Select value={design} onValueChange={(v) => setDesign(v as "branded" | "plain")}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="branded">Branded template</SelectItem>
                   <SelectItem value="plain">Plain text style</SelectItem>
@@ -303,19 +367,38 @@ function EmailPage() {
 
           <div className="space-y-2">
             <Label htmlFor="subject">Subject</Label>
-            <Input id="subject" value={subject} onChange={(e) => setSubject(e.target.value)} maxLength={200} placeholder="Subject line" />
+            <Input
+              id="subject"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              maxLength={200}
+              placeholder="Subject line"
+            />
           </div>
 
           {design === "branded" && (
             <div className="space-y-2">
               <Label htmlFor="heading">Heading</Label>
-              <Input id="heading" value={heading} onChange={(e) => setHeading(e.target.value)} maxLength={160} placeholder="Defaults to the subject" />
+              <Input
+                id="heading"
+                value={heading}
+                onChange={(e) => setHeading(e.target.value)}
+                maxLength={160}
+                placeholder="Defaults to the subject"
+              />
             </div>
           )}
 
           <div className="space-y-2">
             <Label htmlFor="body">Message</Label>
-            <Textarea id="body" value={body} onChange={(e) => setBody(e.target.value)} rows={9} maxLength={5000} placeholder="Write your message… use {{name}} to personalise." />
+            <Textarea
+              id="body"
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              rows={9}
+              maxLength={5000}
+              placeholder="Write your message… use {{name}} to personalise."
+            />
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>{"{{name}}"} is replaced with each member's name</span>
               <span>{body.length}/5000</span>
@@ -326,18 +409,30 @@ function EmailPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="cta">Button label</Label>
-                <Input id="cta" value={ctaLabel} onChange={(e) => setCtaLabel(e.target.value)} maxLength={60} placeholder="Open Halal Connect" />
+                <Input
+                  id="cta"
+                  value={ctaLabel}
+                  onChange={(e) => setCtaLabel(e.target.value)}
+                  maxLength={60}
+                  placeholder="Open Halal Connect"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="ctaurl">Button link</Label>
-                <Input id="ctaurl" value={ctaUrl} onChange={(e) => setCtaUrl(e.target.value)} placeholder="https://halalconnect.app" />
+                <Input
+                  id="ctaurl"
+                  value={ctaUrl}
+                  onChange={(e) => setCtaUrl(e.target.value)}
+                  placeholder="https://halalconnect.app"
+                />
               </div>
             </div>
           )}
 
           <div className="flex items-center gap-2 rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
             <Mail className="h-4 w-4 shrink-0" />
-            Emails are sent one-by-one through Resend so each member is personalised and never sees other recipients.
+            Emails are sent one-by-one through the backend mailer so each member is personalised and
+            never sees other recipients.
           </div>
         </Card>
       </div>
@@ -347,7 +442,11 @@ function EmailPage() {
           <DialogHeader>
             <DialogTitle>Email preview</DialogTitle>
           </DialogHeader>
-          <iframe title="Email preview" srcDoc={previewHtml} className="w-full h-[60vh] rounded-lg border bg-white" />
+          <iframe
+            title="Email preview"
+            srcDoc={previewHtml}
+            className="w-full h-[60vh] rounded-lg border bg-white"
+          />
         </DialogContent>
       </Dialog>
     </AdminLayout>

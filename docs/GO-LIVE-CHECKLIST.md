@@ -105,7 +105,7 @@ App rules: never hardcode prices, plans, gifts, thresholds or Pesapal URLs — a
 Run `npx prisma migrate deploy` with `prisma/schema.prisma`. Add models if not yet present: `Gift`, `GiftInventory`, `GiftTransfer`, `Wallet`, `WalletLedger`, `Withdrawal`, `PaymentOrder`, `PaymentConfig` (encrypted keys), `Discount`, `PhotoAccessRequest`, `PhotoAccessGrant`, `PhotoAccessAudit`, `Verification`, `WaliLink`, `Device`. Seed one admin user (`role=admin`). No demo rows in production.
 
 ## 5. Secrets (server env only)
-`DATABASE_URL`, `JWT_SECRET`, `WALI_LINK_SECRET`, `PAYMENT_KEYS_ENCRYPTION_KEY`, `RESEND_API_KEY`, `GEMINI_API_KEY` (rotated), FCM service-account JSON. Pesapal keys entered from the dashboard Payments page.
+`DATABASE_URL`, `JWT_SECRET`, `WALI_LINK_SECRET`, `PAYMENT_KEYS_ENCRYPTION_KEY`, `GEMINI_API_KEY` (rotated), FCM service-account JSON, and SMTP settings (`MAIL_HOST`, `MAIL_PORT`, `MAIL_USER`, `MAIL_PASS`, `MAIL_FROM`) for OTP and admin email campaigns. Pesapal keys entered from the dashboard Payments page.
 Dashboard env: `VITE_API_URL=https://admin.halalconnect.space/api` (already in `.env.production`).
 
 ## 6. Pesapal setup
