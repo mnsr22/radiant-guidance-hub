@@ -119,7 +119,7 @@ export const verificationApi = {
     if (!token) return { error: 401 };
     try {
       const response = await fetch(
-        `${BASE_URL}/admin/verification/${userId}/documents/${documentId}`,
+        `${BASE_URL}/admin/users/${userId}/verification/documents/${documentId}`,
         { headers: { Authorization: `Bearer ${token}` } },
       );
       if (!response.ok) return { error: response.status };
