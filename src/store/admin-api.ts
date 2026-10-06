@@ -13,6 +13,8 @@ export type GetUsersArgs = {
   search?: string;
   status?: MockUser["status"] | "all";
   practice?: string;
+  verified?: boolean;
+  premium?: boolean;
 };
 
 // ── Support tickets / deletions / tasbih payload shapes ──────────
@@ -158,7 +160,7 @@ const baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> =
   extra,
 ) => {
   const result = await rawBaseQuery(args, store, extra);
-  if (result.error && (result.error.status === 401)) {
+  if (result.error && result.error.status === 401) {
     expireSession();
   }
   return result;
@@ -193,13 +195,15 @@ export const adminApi = createApi({
     >({
       query: (args) => {
         const a = (args ?? {}) as GetUsersArgs;
-        const params: Record<string, string | number> = {
+        const params: Record<string, string | number | boolean> = {
           page: a.page ?? 1,
           limit: a.limit ?? 20,
         };
         if (a.search) params.search = a.search;
         if (a.status && a.status !== "all") params.status = toApiStatus(a.status);
         if (a.practice && a.practice !== "all") params.practice = a.practice;
+        if (a.verified !== undefined) params.verified = a.verified;
+        if (a.premium !== undefined) params.premium = a.premium;
         return { url: "/admin/users", params };
       },
       transformResponse: (res: { results: any[]; total: number; page: number; limit: number }) => ({

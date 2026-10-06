@@ -82,12 +82,16 @@ Admin: `GET /admin/chats?flagged=true`, `GET /admin/chats/:id/messages`, `GET /a
 ## 6. Wali (guardian) — email only
 
 App: `POST /wali/invite` `{name, email, relationship}`, `GET /wali`, `DELETE /wali/:id`,
-`PATCH /wali/preferences` `{ccChats: bool, weeklySummary: bool, matchApprovals: bool}`.
+`PATCH /wali/preferences` `{ccChats: bool, matchApprovals: bool}`,
+`PUT /wali/preferences` `{chatSummaries: bool, weeklyDigest: bool, matchAlerts: bool}`.
 
 Guardian side is link-only (no app): `GET /wali/confirm?token=`, `GET /wali/decline?token=`, `GET /wali/unsubscribe?token=`. Tokens signed with `WALI_LINK_SECRET`, single-use, 14-day expiry.
 
-Jobs: chat CC digest and weekly summary emails via Resend.
-Admin: `GET /admin/wali`, `GET /admin/wali/:id/emails` (delivery log).
+Jobs: weekly summary emails via the backend SMTP mailer. Up to 20 recent message excerpts are
+included only when both chat-sharing permissions are enabled.
+Admin: `GET /admin/wali`, settings and link-management routes, plus
+`POST /admin/wali/test-cc` `{email}` to send an actual SMTP test message to a Wali address.
+The test-email route requires admin authentication; it does not send chat content.
 
 ---
 
@@ -162,13 +166,14 @@ Public/safe in the app: `VITE_API_URL`, Stripe publishable key, Firebase client 
 
 The app never talks to Pesapal directly and never holds keys. It calls your backend, which reads the active gateway settings from the database on every request. So changing keys, test/live mode, currency or API address in **Dashboard → Payment Gateway** takes effect on the next payment.
 
-Admin: `GET /admin/payments/config` (returns settings + `hasCredentials`, never the keys), `PATCH /admin/payments/config` `{environment, enabled, currency, apiBaseUrl, ipnId, callbackUrl, consumerKey?, consumerSecret?}` (keys encrypted at rest), `POST /admin/payments/test` → `{ok, message}`.
+Admin: `GET /admin/payments/config` (returns settings + `hasCredentials`, never the keys), `PATCH /admin/payments/config` `{environment, enabled, currency, ipnId, callbackUrl, consumerKey?, consumerSecret?}` (keys encrypted at rest), `POST /admin/payments/test-connection` → `{ok, provider}`. The test endpoint can receive unsaved `consumerKey`, `consumerSecret`, and `environment` values so the dashboard can validate the current form before saving.
 
 App:
 - `GET /payments/config` → `{enabled, currency, provider}` (public info only — use it to show/hide pay buttons)
-- `POST /billing/checkout` `{planId}` and `POST /gifts/purchase` `{giftId, quantity}` → `{orderId, redirectUrl}`. Open `redirectUrl` in an in-app WebView. Pesapal sends the member back to `callbackUrl`; close the WebView when that URL loads.
-- `GET /payments/orders/:orderId` → `{status: pending|completed|failed}` — poll after the WebView closes.
-Backend flow: `POST {apiBaseUrl}/api/Auth/RequestToken` → `POST /api/Transactions/SubmitOrderRequest` (with `notification_id = ipnId`) → IPN arrives at `POST /api/public/webhooks/pesapal` → backend confirms with `GET /api/Transactions/GetTransactionStatus?orderTrackingId=` before granting the plan/gift (never trust the IPN alone).
+- Paid checkout is always routed through Pesapal: `POST /payments/checkout` with `{itemType: "subscription", itemId, discountCode?}` or `{itemType: "gift", itemId, quantity?}` → `{redirectUrl, orderTrackingId}`. Open `redirectUrl` in the in-app browser; no Stripe, Google Pay, or Apple Pay method is selected in the app.
+- `GET /payments/status/:orderTrackingId` → `{status: pending|completed|failed}` — poll after the member returns from Pesapal.
+- The dashboard's public `/payment-return` page is the default `callbackUrl`; it tells members to return to the app and does not treat the redirect alone as proof of payment.
+- Backend flow: `POST {apiBaseUrl}/api/Auth/RequestToken` → `POST /api/Transactions/SubmitOrderRequest` (with `notification_id = ipnId`) → IPN arrives at `POST /api/public/payments/pesapal/ipn` → backend confirms with `GET /api/Transactions/GetTransactionStatus?orderTrackingId=` before granting the plan/gift (never trust the IPN alone).
 
 ## 15. Gifts, wallet & withdrawals
 

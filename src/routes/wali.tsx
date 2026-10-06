@@ -1,8 +1,16 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
-  ShieldCheck, Search, Mail, Send, Ban, CheckCircle2, Users, Download, Eye,
+  ShieldCheck,
+  Search,
+  Mail,
+  Send,
+  Ban,
+  CheckCircle2,
+  Users,
+  Download,
+  Eye,
 } from "lucide-react";
 import { AdminLayout, PageHeader } from "@/components/admin/layout";
 import { StatCard } from "@/components/admin/stat-card";
@@ -14,15 +22,30 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { downloadCSV } from "@/lib/csv";
+import { api, ApiError } from "@/lib/api";
 import { useWaliLinks, useWaliSettings, useWaliMutations } from "@/lib/admin-hooks";
 import type { WaliLink, WaliSettings, WaliStatus } from "@/store/admin-api";
 
@@ -54,35 +77,6 @@ const statusVariant = (s: WaliStatus) =>
 
 const dateStr = (iso?: string | null) => (!iso ? "—" : new Date(iso).toLocaleDateString());
 
-// Shown until the backend /admin/wali endpoints are live.
-const SAMPLE: WaliLink[] = [
-  {
-    id: "w1", userId: "u1", userName: "Aisha Rahman", userEmail: "aisha@example.com",
-    userGender: "Female", waliName: "Yusuf Rahman", waliEmail: "yusuf.rahman@example.com",
-    waliPhone: "+254 700 111 222", relationship: "Father", status: "active",
-    ccChats: true, ccMatches: true, approvalRequired: true, ccCount: 148,
-    lastCcAt: new Date(Date.now() - 3.6e6).toISOString(),
-    invitedAt: "2026-05-02T10:00:00Z", acceptedAt: "2026-05-02T18:20:00Z",
-    createdAt: "2026-05-02T10:00:00Z",
-  },
-  {
-    id: "w2", userId: "u2", userName: "Fatima Noor", userEmail: "fatima@example.com",
-    userGender: "Female", waliName: "Ibrahim Noor", waliEmail: "ibrahim.noor@example.com",
-    waliPhone: "+254 711 333 444", relationship: "Brother", status: "pending",
-    ccChats: true, ccMatches: false, approvalRequired: true, ccCount: 0,
-    lastCcAt: null, invitedAt: "2026-08-18T09:15:00Z", acceptedAt: null,
-    createdAt: "2026-08-18T09:15:00Z",
-  },
-  {
-    id: "w3", userId: "u3", userName: "Maryam Ali", userEmail: "maryam@example.com",
-    userGender: "Female", waliName: "Hamza Ali", waliEmail: "hamza.ali@example.com",
-    waliPhone: null, relationship: "Uncle", status: "revoked",
-    ccChats: false, ccMatches: false, approvalRequired: false, ccCount: 27,
-    lastCcAt: "2026-07-01T12:00:00Z", invitedAt: "2026-04-11T08:00:00Z",
-    acceptedAt: "2026-04-12T08:00:00Z", createdAt: "2026-04-11T08:00:00Z",
-  },
-];
-
 const DEFAULT_SETTINGS: WaliSettings = {
   waliEnabled: true,
   requireWaliForSisters: true,
@@ -96,11 +90,14 @@ function WaliPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<string>("all");
   const { data, isLoading, isError } = useWaliLinks();
-  const { data: storedSettings } = useWaliSettings();
+  const {
+    data: storedSettings,
+    isLoading: settingsLoading,
+    isError: settingsError,
+  } = useWaliSettings();
   const mut = useWaliMutations();
 
-  const links = (data ?? (isError ? SAMPLE : [])) as WaliLink[];
-  const usingSample = !isLoading && isError;
+  const links = useMemo(() => (data ?? []) as WaliLink[], [data]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -108,8 +105,16 @@ function WaliPage() {
       if (status !== "all" && l.status !== status) return false;
       if (!q) return true;
       return [
-        l.userName, l.userEmail, l.userGender, l.waliName, l.waliEmail,
-        l.waliPhone, l.relationship, l.status, l.id, l.userId,
+        l.userName,
+        l.userEmail,
+        l.userGender,
+        l.waliName,
+        l.waliEmail,
+        l.waliPhone,
+        l.relationship,
+        l.status,
+        l.id,
+        l.userId,
       ]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q));
@@ -178,29 +183,39 @@ function WaliPage() {
                     />
                   </div>
                   <Select value={status} onValueChange={setStatus}>
-                    <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="w-36">
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All statuses</SelectItem>
                       {STATUSES.map((s) => (
-                        <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
+                        <SelectItem key={s} value={s} className="capitalize">
+                          {s}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   <Button
                     variant="outline"
-                    onClick={() => downloadCSV("wali-assignments", filtered as unknown as Record<string, unknown>[])}
+                    onClick={() =>
+                      downloadCSV(
+                        "wali-assignments",
+                        filtered as unknown as Record<string, unknown>[],
+                      )
+                    }
                   >
                     <Download className="h-4 w-4 mr-2" /> Export
                   </Button>
                 </div>
               </div>
-              {usingSample && (
-                <p className="text-xs text-muted-foreground">
-                  Showing sample data — connect <code>GET /api/admin/wali</code> to load live assignments.
-                </p>
-              )}
             </CardHeader>
             <CardContent>
+              {isError && (
+                <p role="alert" className="mb-3 text-sm text-destructive">
+                  Could not load guardian assignments from the backend. Check your admin session and
+                  try again.
+                </p>
+              )}
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -209,7 +224,7 @@ function WaliPage() {
                       <TableHead>Wali</TableHead>
                       <TableHead>Relationship</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>CC chats</TableHead>
+                      <TableHead>Chat digests</TableHead>
                       <TableHead>CC matches</TableHead>
                       <TableHead>Approval</TableHead>
                       <TableHead>Last CC</TableHead>
@@ -217,10 +232,19 @@ function WaliPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filtered.length === 0 && (
+                    {isLoading && (
                       <TableRow>
                         <TableCell colSpan={9} className="py-10 text-center text-muted-foreground">
-                          No guardians match “{search}”.
+                          Loading guardian assignments…
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {filtered.length === 0 && !isLoading && (
+                      <TableRow>
+                        <TableCell colSpan={9} className="py-10 text-center text-muted-foreground">
+                          {isError
+                            ? "Live guardian assignments are unavailable."
+                            : `No guardians match “${search}”.`}
                         </TableCell>
                       </TableRow>
                     )}
@@ -233,12 +257,15 @@ function WaliPage() {
                         <TableCell>
                           <div className="font-medium">{l.waliName}</div>
                           <div className="text-xs text-muted-foreground">
-                            {l.waliEmail}{l.waliPhone ? ` · ${l.waliPhone}` : ""}
+                            {l.waliEmail}
+                            {l.waliPhone ? ` · ${l.waliPhone}` : ""}
                           </div>
                         </TableCell>
                         <TableCell>{l.relationship}</TableCell>
                         <TableCell>
-                          <Badge variant={statusVariant(l.status)} className="capitalize">{l.status}</Badge>
+                          <Badge variant={statusVariant(l.status)} className="capitalize">
+                            {l.status}
+                          </Badge>
                         </TableCell>
                         <TableCell>
                           <Switch
@@ -271,23 +298,36 @@ function WaliPage() {
                           {l.status === "pending" && (
                             <>
                               <Button
-                                size="icon" variant="ghost" title="Resend invite"
+                                size="icon"
+                                variant="ghost"
+                                title="Resend invite"
                                 onClick={() =>
                                   mut.resendInvite.mutate(l.id, {
-                                    onSuccess: () => toast.success(`Invite resent to ${l.waliEmail}`),
+                                    onSuccess: () =>
+                                      toast.success(`Invite resent to ${l.waliEmail}`),
                                     onError: () => toast.error("Backend not connected yet"),
                                   })
                                 }
                               >
                                 <Send className="h-4 w-4" />
                               </Button>
-                              <Button size="icon" variant="ghost" title="Approve guardian" onClick={() => act(l, "active")}>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                title="Approve guardian"
+                                onClick={() => act(l, "active")}
+                              >
                                 <CheckCircle2 className="h-4 w-4 text-primary" />
                               </Button>
                             </>
                           )}
                           {l.status === "active" && (
-                            <Button size="icon" variant="ghost" title="Revoke guardian" onClick={() => act(l, "revoked")}>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              title="Revoke guardian"
+                              onClick={() => act(l, "revoked")}
+                            >
                               <Ban className="h-4 w-4 text-destructive" />
                             </Button>
                           )}
@@ -307,7 +347,12 @@ function WaliPage() {
         </TabsContent>
 
         <TabsContent value="rules">
-          <WaliRules stored={storedSettings} mut={mut} />
+          <WaliRules
+            stored={storedSettings}
+            settingsLoading={settingsLoading}
+            settingsError={settingsError}
+            mut={mut}
+          />
         </TabsContent>
       </Tabs>
     </AdminLayout>
@@ -315,32 +360,89 @@ function WaliPage() {
 }
 
 function WaliRules({
-  stored, mut,
+  stored,
+  settingsLoading,
+  settingsError,
+  mut,
 }: {
   stored?: WaliSettings;
+  settingsLoading: boolean;
+  settingsError: boolean;
   mut: ReturnType<typeof useWaliMutations>;
 }) {
   const [form, setForm] = useState<WaliSettings>({ ...DEFAULT_SETTINGS, ...(stored ?? {}) });
   const [testOpen, setTestOpen] = useState(false);
   const [testEmail, setTestEmail] = useState("");
+  const [sendingTest, setSendingTest] = useState(false);
+
+  useEffect(() => {
+    if (stored) setForm({ ...DEFAULT_SETTINGS, ...stored });
+  }, [stored]);
 
   const rows: { key: keyof WaliSettings; label: string; desc: string }[] = [
-    { key: "waliEnabled", label: "Wali feature enabled", desc: "Members can invite a guardian from their profile." },
-    { key: "requireWaliForSisters", label: "Require a wali for sisters", desc: "Sisters must assign a guardian before chatting." },
-    { key: "ccAllChats", label: "CC guardian on all chats", desc: "Every message is copied to the assigned wali." },
-    { key: "waliApprovalForMatches", label: "Wali approval for matches", desc: "A match is only confirmed after the wali approves." },
+    {
+      key: "waliEnabled",
+      label: "Wali feature enabled",
+      desc: "Members can invite a guardian from their profile.",
+    },
+    {
+      key: "requireWaliForSisters",
+      label: "Require a wali for sisters",
+      desc: "Sisters must assign a guardian before chatting.",
+    },
+    {
+      key: "ccAllChats",
+      label: "Include chat excerpts in scheduled digests",
+      desc: "When a member consents to chat summaries, scheduled digests can include up to 20 recent message excerpts.",
+    },
+    {
+      key: "waliApprovalForMatches",
+      label: "Wali approval for matches",
+      desc: "A match is only confirmed after the wali approves.",
+    },
   ];
 
   function save() {
     mut.saveSettings.mutate(form, {
-      onSuccess: () => toast.success("Wali rules saved"),
-      onError: () => toast.error("Backend not connected yet — rules not saved"),
+      onSuccess: () => toast.success("Wali policy settings saved"),
+      onError: (error) =>
+        toast.error(
+          error instanceof ApiError ? error.message : "Wali policy settings could not be saved",
+        ),
     });
+  }
+
+  async function sendTestCc() {
+    const email = testEmail.trim();
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      toast.error("Enter a valid email");
+      return;
+    }
+
+    setSendingTest(true);
+    try {
+      await api<{ sent: boolean }>("/admin/wali/test-cc", {
+        method: "POST",
+        body: { email },
+      });
+      toast.success(`Test CC email sent to ${email}`);
+      setTestOpen(false);
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Test CC email could not be sent");
+    } finally {
+      setSendingTest(false);
+    }
   }
 
   return (
     <Card>
       <CardHeader>
+        {settingsLoading && <p className="text-sm text-muted-foreground">Loading Wali settings…</p>}
+        {settingsError && (
+          <p role="alert" className="text-sm text-destructive">
+            Could not load Wali settings from the backend. Changes may overwrite existing settings.
+          </p>
+        )}
         <CardTitle className="text-base">Global wali rules</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -362,9 +464,13 @@ function WaliRules({
             <Label>CC digest frequency</Label>
             <Select
               value={form.ccDigestFrequency}
-              onValueChange={(v) => setForm({ ...form, ccDigestFrequency: v as WaliSettings["ccDigestFrequency"] })}
+              onValueChange={(v) =>
+                setForm({ ...form, ccDigestFrequency: v as WaliSettings["ccDigestFrequency"] })
+              }
             >
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="instant">Instant</SelectItem>
                 <SelectItem value="daily">Daily digest</SelectItem>
@@ -375,7 +481,9 @@ function WaliRules({
           <div className="space-y-1.5">
             <Label>Invite expiry (days)</Label>
             <Input
-              type="number" min={1} max={30}
+              type="number"
+              min={1}
+              max={30}
               value={form.inviteExpiryDays}
               onChange={(e) => setForm({ ...form, inviteExpiryDays: Number(e.target.value) || 1 })}
             />
@@ -403,22 +511,22 @@ function WaliRules({
           <div className="space-y-1.5">
             <Label>Guardian email</Label>
             <Input
-              type="email" value={testEmail}
+              type="email"
+              value={testEmail}
               onChange={(e) => setTestEmail(e.target.value)}
               placeholder="wali@example.com"
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setTestOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setTestOpen(false)}>
+              Cancel
+            </Button>
             <Button
+              disabled={sendingTest}
               className="bg-gradient-primary text-primary-foreground border-0"
-              onClick={() => {
-                if (!/^\S+@\S+\.\S+$/.test(testEmail)) return toast.error("Enter a valid email");
-                toast.success(`Test CC queued to ${testEmail}`);
-                setTestOpen(false);
-              }}
+              onClick={sendTestCc}
             >
-              Send test
+              {sendingTest ? "Sending…" : "Send test"}
             </Button>
           </DialogFooter>
         </DialogContent>

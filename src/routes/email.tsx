@@ -34,6 +34,7 @@ import { useUsers } from "@/lib/admin-hooks";
 import { api } from "@/lib/api";
 import { renderEmailHtml } from "@/lib/email-template";
 import type { MockUser } from "@/lib/mock-data";
+import type { GetUsersArgs } from "@/store/admin-api";
 
 export const Route = createFileRoute("/email")({
   component: EmailPage,
@@ -99,12 +100,24 @@ const templates = {
 } as const;
 
 function EmailPage() {
-  const { data: usersData } = useUsers();
-  const users: MockUser[] = useMemo(() => usersData?.users ?? [], [usersData?.users]);
-
   const [segment, setSegment] = useState<Segment>("all");
   const [q, setQ] = useState("");
-  const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [page, setPage] = useState(1);
+  const userQuery = useMemo<GetUsersArgs>(() => {
+    const query: GetUsersArgs = {
+      page,
+      limit: 100,
+      search: q.trim() || undefined,
+    };
+    if (segment === "premium") query.premium = true;
+    else if (segment === "verified") query.verified = true;
+    else if (segment === "banned" || segment === "pending") query.status = segment;
+    return query;
+  }, [page, q, segment]);
+  const { data: usersData, isLoading, isFetching, isError } = useUsers(userQuery);
+  const users: MockUser[] = useMemo(() => usersData?.users ?? [], [usersData?.users]);
+
+  const [selected, setSelected] = useState<Record<string, { email: string; name: string }>>({});
   const [manual, setManual] = useState("");
 
   const [templateKey, setTemplateKey] = useState<keyof typeof templates>("custom");
@@ -117,24 +130,11 @@ function EmailPage() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [sending, setSending] = useState(false);
 
-  const list = useMemo(() => {
-    const base = users.filter((u) =>
-      segment === "all"
-        ? true
-        : segment === "premium"
-          ? u.premium
-          : segment === "verified"
-            ? u.verified
-            : u.status === segment,
-    );
-    if (!q.trim()) return base;
-    const needle = q.toLowerCase();
-    return base.filter((u) =>
-      `${u.name} ${u.email} ${u.country} ${u.city}`.toLowerCase().includes(needle),
-    );
-  }, [users, segment, q]);
+  const list = users;
 
   const allSelected = list.length > 0 && list.every((u) => selected[u.id]);
+  const totalUsers = usersData?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalUsers / 100));
 
   const manualRecipients = useMemo(
     () =>
@@ -147,12 +147,18 @@ function EmailPage() {
   );
 
   const recipients = useMemo(() => {
-    const picked = users
-      .filter((u) => selected[u.id])
-      .map((u) => ({ email: u.email, name: u.name }));
-    const seen = new Set(picked.map((p) => p.email));
-    return [...picked, ...manualRecipients.filter((m) => !seen.has(m.email))];
-  }, [users, selected, manualRecipients]);
+    const picked = Object.values(selected);
+    const seen = new Set(picked.map((p) => p.email.toLowerCase()));
+    return [
+      ...picked,
+      ...manualRecipients.filter((recipient) => {
+        const key = recipient.email.toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      }),
+    ];
+  }, [selected, manualRecipients]);
 
   function applyTemplate(key: keyof typeof templates) {
     setTemplateKey(key);
@@ -167,7 +173,7 @@ function EmailPage() {
     if (allSelected) list.forEach((u) => delete next[u.id]);
     else
       list.forEach((u) => {
-        next[u.id] = true;
+        next[u.id] = { email: u.email, name: u.name };
       });
     setSelected(next);
   }
@@ -188,6 +194,8 @@ function EmailPage() {
 
   async function handleSend() {
     if (recipients.length === 0) return toast.error("Select at least one recipient");
+    if (recipients.length > 200)
+      return toast.error("Campaigns are limited to 200 recipients at a time");
     if (!subject.trim() || !body.trim()) return toast.error("Subject and message are required");
     if (ctaLabel && !ctaUrl) return toast.error("Add a link for the button");
     setSending(true);
@@ -229,7 +237,7 @@ function EmailPage() {
     <AdminLayout>
       <PageHeader
         title="Email Campaigns"
-        description="Send branded Halal Connect emails to one member, a selection, or a whole segment."
+        description="Send branded email to selected members or manual addresses. Campaign sends are limited to 200 recipients."
         actions={
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={() => setPreviewOpen(true)}>
@@ -255,7 +263,13 @@ function EmailPage() {
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <Card className="shadow-elegant overflow-hidden">
           <div className="p-4 border-b space-y-3">
-            <Tabs value={segment} onValueChange={(v) => setSegment(v as Segment)}>
+            <Tabs
+              value={segment}
+              onValueChange={(value) => {
+                setSegment(value as Segment);
+                setPage(1);
+              }}
+            >
               <TabsList className="flex flex-wrap h-auto gap-1 p-1">
                 {(Object.keys(segmentMeta) as Segment[]).map((key) => {
                   const Icon = segmentMeta[key].icon;
@@ -272,7 +286,10 @@ function EmailPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 value={q}
-                onChange={(e) => setQ(e.target.value)}
+                onChange={(e) => {
+                  setQ(e.target.value);
+                  setPage(1);
+                }}
                 placeholder="Search name, email, country…"
                 className="pl-9"
               />
@@ -282,9 +299,22 @@ function EmailPage() {
               <Label htmlFor="all-recipients" className="cursor-pointer">
                 Select all visible ({list.length})
               </Label>
+              <span className="ml-auto">
+                {totalUsers === 0
+                  ? "No matching members"
+                  : `Page ${page} of ${totalPages} · ${totalUsers} matching members`}
+              </span>
             </div>
           </div>
           <div className="divide-y max-h-[380px] overflow-y-auto">
+            {isError && (
+              <div className="p-4 text-sm text-destructive">
+                Could not load members from the backend. Check your admin session and try again.
+              </div>
+            )}
+            {(isLoading || isFetching) && (
+              <div className="p-4 text-sm text-muted-foreground">Loading members…</div>
+            )}
             {list.length === 0 && (
               <div className="p-8 text-center text-sm text-muted-foreground">
                 No members in this segment.
@@ -297,7 +327,14 @@ function EmailPage() {
               >
                 <Checkbox
                   checked={!!selected[u.id]}
-                  onCheckedChange={(v) => setSelected((s) => ({ ...s, [u.id]: !!v }))}
+                  onCheckedChange={(v) =>
+                    setSelected((current) => {
+                      const next = { ...current };
+                      if (v) next[u.id] = { email: u.email, name: u.name };
+                      else delete next[u.id];
+                      return next;
+                    })
+                  }
                 />
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-medium flex items-center gap-1.5">
@@ -312,6 +349,27 @@ function EmailPage() {
                 </Badge>
               </label>
             ))}
+          </div>
+          <div className="flex items-center justify-between border-t p-3 text-sm">
+            <span>{Object.keys(selected).length} member(s) selected across pages</span>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={page <= 1 || isFetching}
+                onClick={() => setPage((current) => current - 1)}
+              >
+                Previous
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={page >= totalPages || isFetching}
+                onClick={() => setPage((current) => current + 1)}
+              >
+                Next
+              </Button>
+            </div>
           </div>
           <div className="p-4 border-t space-y-2">
             <Label htmlFor="manual">Additional emails</Label>

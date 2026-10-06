@@ -84,7 +84,11 @@ import {
   useRemoveWaliLinkMutation,
 } from "@/store/admin-api";
 import type {
-  TicketStatus, TasbihSettings, WaliLink, WaliSettings, WaliStatus,
+  TicketStatus,
+  TasbihSettings,
+  WaliLink,
+  WaliSettings,
+  WaliStatus,
 } from "@/store/admin-api";
 
 type MutOpts = { onSuccess?: () => void; onError?: (e: unknown) => void };
@@ -104,10 +108,10 @@ function wrap<T>(trigger: (arg: T) => { unwrap: () => Promise<unknown> }) {
 
 // ── Users ──────────────────────────────────────────────────────
 export function useUsers(args?: GetUsersArgs, opts?: { skip?: boolean }) {
-  const { data, isLoading, isFetching } = useGetUsersQuery(args ?? {}, {
+  const { data, isLoading, isFetching, isError } = useGetUsersQuery(args ?? {}, {
     skip: opts?.skip ?? false,
   });
-  return { data, isLoading, isFetching };
+  return { data, isLoading, isFetching, isError };
 }
 export function useUserMutations() {
   const [setStatus] = useSetUserStatusMutation();
@@ -418,8 +422,8 @@ export function useWaliLinks(args?: { status?: string; search?: string }) {
   return { data, isLoading, isFetching, isError };
 }
 export function useWaliSettings() {
-  const { data, isLoading } = useGetWaliSettingsQuery();
-  return { data, isLoading };
+  const { data, isLoading, isError } = useGetWaliSettingsQuery();
+  return { data, isLoading, isError };
 }
 export function useWaliMutations() {
   const [saveSettings] = usePatchWaliSettingsMutation();
