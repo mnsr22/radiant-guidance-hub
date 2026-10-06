@@ -108,6 +108,28 @@ export const verificationApi = {
     return URL.createObjectURL(await response.blob());
   },
 
+  /// Fetches one uploaded ID document image (front / back / holding proof) as
+  /// a local object URL. Uses the admin token, so private files stay private.
+  /// Returns the HTTP status on failure so the UI can say why it's missing.
+  getDocumentImage: async (
+    userId: string,
+    documentId: string,
+  ): Promise<{ url: string; type: string } | { error: number }> => {
+    const token = getToken();
+    if (!token) return { error: 401 };
+    try {
+      const response = await fetch(
+        `${BASE_URL}/admin/verification/${userId}/documents/${documentId}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (!response.ok) return { error: response.status };
+      const blob = await response.blob();
+      return { url: URL.createObjectURL(blob), type: blob.type };
+    } catch {
+      return { error: 0 };
+    }
+  },
+
   getVerificationAuditHistory: async (userId: string): Promise<VerificationAuditEntry[]> => {
     try {
       const d: any = await api(`/admin/verifications/${userId}/audit`);
