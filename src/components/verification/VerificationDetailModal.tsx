@@ -20,6 +20,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { verificationApi } from '@/lib/api/verification-api';
+import { DocumentGallery, extractDocuments, documentTypeLabel } from './DocumentGallery';
 import { toast } from 'sonner';
 
 const REJECTION_REASONS: RejectionReason[] = [
@@ -299,11 +300,25 @@ export function VerificationDetailModal({
                     )}
                   </div>
 
-                  <div className="pt-4 border-t">
-                    <Label>Submitted Information</Label>
-                    <pre className="bg-gray-50 p-3 rounded mt-2 text-xs overflow-auto max-h-48 border">
-                      {JSON.stringify(verification.identitySubmission.data, null, 2)}
-                    </pre>
+                  <div className="pt-4 border-t space-y-3">
+                    {(() => {
+                      const data = verification.identitySubmission!.data;
+                      const docs = extractDocuments(data);
+                      const typeLabel = documentTypeLabel(data);
+                      return (
+                        <>
+                          <div className="flex items-center justify-between">
+                            <Label>Uploaded documents</Label>
+                            {typeLabel && <Badge variant="outline">{typeLabel}</Badge>}
+                          </div>
+                          {docs.length > 0 ? (
+                            <DocumentGallery userId={userId} docs={docs} />
+                          ) : (
+                            <p className="text-sm text-muted-foreground">No document images were attached to this submission.</p>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
 
                   {verification.identitySubmission.reason && (
