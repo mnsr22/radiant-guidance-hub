@@ -63,10 +63,12 @@ function TasbihPage() {
   const { data: settings } = useTasbihSettings();
   const { createBadge, updateBadge, saveSettings, adjustStreak } = useTasbihMutations();
 
-  const [streakGrace, setStreakGrace] = useState([1]);
+  const [minStreakDays, setMinStreakDays] = useState([7]);
   const [dailyGoal, setDailyGoal] = useState([100]);
-  const [requireAuth, setRequireAuth] = useState(true);
-  const [offlineSync, setOfflineSync] = useState(true);
+  const [badgesEnabled, setBadgesEnabled] = useState(true);
+  const [streaksEnabled, setStreaksEnabled] = useState(true);
+  const [leaderboardEnabled, setLeaderboardEnabled] = useState(true);
+  const [dailyGoalEnabled, setDailyGoalEnabled] = useState(true);
   const [newBadge, setNewBadge] = useState({
     name: "",
     threshold: 0,
@@ -77,9 +79,11 @@ function TasbihPage() {
   useEffect(() => {
     if (!settings) return;
     setDailyGoal([settings.dailyGoal]);
-    setStreakGrace([settings.graceDays]);
-    setRequireAuth(settings.requireAuth);
-    setOfflineSync(settings.offlineSync);
+    setMinStreakDays([settings.minStreakDays]);
+    setBadgesEnabled(settings.badgesEnabled);
+    setStreaksEnabled(settings.streaksEnabled);
+    setLeaderboardEnabled(settings.leaderboardEnabled);
+    setDailyGoalEnabled(settings.dailyGoalEnabled);
   }, [settings]);
 
   const weeklyData = weekly ?? [];
@@ -124,9 +128,11 @@ function TasbihPage() {
     saveSettings.mutate(
       {
         dailyGoal: dailyGoal[0],
-        graceDays: streakGrace[0],
-        requireAuth,
-        offlineSync,
+        minStreakDays: minStreakDays[0],
+        badgesEnabled,
+        streaksEnabled,
+        leaderboardEnabled,
+        dailyGoalEnabled,
       },
       {
         onSuccess: () => toast.success("Streak rules saved"),
@@ -273,43 +279,69 @@ function TasbihPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Grace Days per Month</Label>
+                <Label>Minimum Streak Days</Label>
                 <Slider
                   disabled={!settings}
-                  value={streakGrace}
-                  onValueChange={setStreakGrace}
-                  min={0}
-                  max={5}
+                  value={minStreakDays}
+                  onValueChange={setMinStreakDays}
+                  min={1}
+                  max={365}
                   step={1}
                 />
                 <div className="text-xs text-muted-foreground">
-                  {streakGrace[0]} missed day(s) allowed without resetting
+                  {minStreakDays[0]} consecutive days required for a streak badge
                 </div>
               </div>
               <div className="flex items-center justify-between rounded-lg border p-3">
                 <div>
-                  <div className="text-sm font-medium">Require Authentication</div>
+                  <div className="text-sm font-medium">Enable streaks</div>
                   <div className="text-xs text-muted-foreground">
-                    Anonymous sessions won't count
+                    Track consecutive daily Tasbih activity
                   </div>
                 </div>
                 <Switch
                   disabled={!settings}
-                  checked={requireAuth}
-                  onCheckedChange={setRequireAuth}
+                  checked={streaksEnabled}
+                  onCheckedChange={setStreaksEnabled}
                 />
               </div>
               <div className="flex items-center justify-between rounded-lg border p-3">
                 <div>
-                  <div className="text-sm font-medium">Offline Sync</div>
+                  <div className="text-sm font-medium">Enable badges</div>
                   <div className="text-xs text-muted-foreground">
-                    Buffer sessions and sync with idempotency keys
+                    Award configured Tasbih achievements
                   </div>
                 </div>
                 <Switch
                   disabled={!settings}
-                  checked={offlineSync}
-                  onCheckedChange={setOfflineSync}
+                  checked={badgesEnabled}
+                  onCheckedChange={setBadgesEnabled}
+                />
+              </div>
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div>
+                  <div className="text-sm font-medium">Enable leaderboard</div>
+                  <div className="text-xs text-muted-foreground">
+                    Show the configured Tasbih ranking to users
+                  </div>
+                </div>
+                <Switch
+                  disabled={!settings}
+                  checked={leaderboardEnabled}
+                  onCheckedChange={setLeaderboardEnabled}
+                />
+              </div>
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div>
+                  <div className="text-sm font-medium">Enable daily goal</div>
+                  <div className="text-xs text-muted-foreground">
+                    Use a daily target when tracking Tasbih activity
+                  </div>
+                </div>
+                <Switch
+                  disabled={!settings}
+                  checked={dailyGoalEnabled}
+                  onCheckedChange={setDailyGoalEnabled}
                 />
               </div>
               <Button disabled={!settings} onClick={saveRules} className="w-full">

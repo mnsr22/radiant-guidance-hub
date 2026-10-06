@@ -10,6 +10,8 @@ export type AdminFeedType =
   | "match"
   | "message"
   | "report"
+  | "payment"
+  | "verification"
   | "subscription"
   | "moderation";
 

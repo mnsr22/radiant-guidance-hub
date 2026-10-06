@@ -414,8 +414,8 @@ export function useTasbihMutations() {
 
 // ── Wali (guardian) oversight ──────────────────────────────────
 export function useWaliLinks(args?: { status?: string; search?: string }) {
-  const { data, isLoading, isFetching } = useGetWaliLinksQuery(args ?? {});
-  return { data, isLoading, isFetching };
+  const { data, isLoading, isFetching, isError } = useGetWaliLinksQuery(args ?? {});
+  return { data, isLoading, isFetching, isError };
 }
 export function useWaliSettings() {
   const { data, isLoading } = useGetWaliSettingsQuery();

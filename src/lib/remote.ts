@@ -4,8 +4,7 @@ import { api } from "@/lib/api";
 /**
  * Loads a list from the backend. If the endpoint isn't live yet, falls back to
  * sample rows so the page stays usable; `sample` tells the UI to say so.
- * Mutations go through `mutate`, which calls the backend and then updates the
- * row locally (also in sample mode, so every button visibly works).
+ * Mutations update local rows only after the backend confirms success.
  */
 export function useRemoteList<T extends { id: string }>(
   path: string,
@@ -41,11 +40,7 @@ export function useRemoteList<T extends { id: string }>(
   /** Run a backend call; on success (or in sample mode) patch the row locally. */
   const mutate = useCallback(
     async (call: () => Promise<unknown>, id: string, patch: Partial<T> | null) => {
-      try {
-        await call();
-      } catch (e) {
-        if (!sample) throw e;
-      }
+      await call();
       setRows((rs) =>
         patch === null ? rs.filter((r) => r.id !== id) : rs.map((r) => (r.id === id ? { ...r, ...patch } : r)),
       );

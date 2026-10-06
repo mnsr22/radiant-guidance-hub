@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Heart, MessageCircle, Users, MapPin, UserPlus, ShieldAlert, CreditCard, Shield } from "lucide-react";
+import { Heart, MessageCircle, Users, MapPin, UserPlus, ShieldAlert, CreditCard, Shield, BadgeCheck } from "lucide-react";
 import { AdminLayout, PageHeader } from "@/components/admin/layout";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,12 +10,14 @@ import { useAdminFeed, type AdminFeedType } from "@/lib/admin-socket";
 
 export const Route = createFileRoute("/live")({ component: Live });
 
-const FEED_TYPES: AdminFeedType[] = ["signup", "match", "message", "subscription", "report", "moderation"];
+const FEED_TYPES: AdminFeedType[] = ["signup", "match", "message", "payment", "verification", "subscription", "report", "moderation"];
 const FEED_LABEL: Record<AdminFeedType, string> = {
   signup: "Signups",
   match: "Matches",
   message: "Messages",
   report: "Reports",
+  payment: "Payments",
+  verification: "Verifications",
   subscription: "Subscriptions",
   moderation: "Moderation",
 };
@@ -25,6 +27,8 @@ const FEED_ICON: Record<AdminFeedType, typeof Heart> = {
   match: Heart,
   message: MessageCircle,
   report: ShieldAlert,
+  payment: CreditCard,
+  verification: BadgeCheck,
   subscription: CreditCard,
   moderation: Shield,
 };
@@ -33,6 +37,8 @@ const FEED_COLOR: Record<AdminFeedType, string> = {
   match: "text-warning",
   message: "text-primary",
   report: "text-destructive",
+  payment: "text-success",
+  verification: "text-warning",
   subscription: "text-success",
   moderation: "text-warning",
 };

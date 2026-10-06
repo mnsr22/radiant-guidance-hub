@@ -95,12 +95,12 @@ const DEFAULT_SETTINGS: WaliSettings = {
 function WaliPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<string>("all");
-  const { data, isLoading } = useWaliLinks();
+  const { data, isLoading, isError } = useWaliLinks();
   const { data: storedSettings } = useWaliSettings();
   const mut = useWaliMutations();
 
-  const links = (data && data.length > 0 ? data : SAMPLE) as WaliLink[];
-  const usingSample = !isLoading && (!data || data.length === 0);
+  const links = (data ?? (isError ? SAMPLE : [])) as WaliLink[];
+  const usingSample = !isLoading && isError;
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -263,7 +263,9 @@ function WaliPage() {
                         </TableCell>
                         <TableCell className="text-sm">
                           {dateStr(l.lastCcAt)}
-                          <div className="text-xs text-muted-foreground">{l.ccCount ?? 0} sent</div>
+                          {l.ccCount != null && (
+                            <div className="text-xs text-muted-foreground">{l.ccCount} sent</div>
+                          )}
                         </TableCell>
                         <TableCell className="text-right whitespace-nowrap">
                           {l.status === "pending" && (

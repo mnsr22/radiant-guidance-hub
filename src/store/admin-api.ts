@@ -130,9 +130,13 @@ export type TasbihBadge = {
 
 export type TasbihSettings = {
   dailyGoal: number;
-  graceDays: number;
-  requireAuth: boolean;
-  offlineSync: boolean;
+  minStreakDays: number;
+  badgesEnabled: boolean;
+  streaksEnabled: boolean;
+  leaderboardEnabled: boolean;
+  dailyGoalEnabled: boolean;
+  encouragementEnabled: boolean;
+  leaderboardScope: "global" | "country" | "city" | "matches";
 };
 
 const rawBaseQuery = fetchBaseQuery({

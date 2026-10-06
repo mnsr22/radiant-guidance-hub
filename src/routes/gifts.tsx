@@ -55,13 +55,13 @@ function toApi(row: GiftRow) {
 }
 
 function GiftsPage() {
-  const { rows, mutate, add, sample } = useRemoteList<GiftRow>("/admin/gifts", SAMPLE, fromApi);
+  const { rows, mutate, add } = useRemoteList<GiftRow>("/admin/gifts", SAMPLE, fromApi);
   const [edit, setEdit] = useState<GiftRow | null>(null);
   const [threshold, setThreshold] = useState(50000);
 
   useEffect(() => {
-    api<{ minWithdrawal: number }>("/admin/wallet/settings")
-      .then((settings) => setThreshold(settings.minWithdrawal))
+    api<{ minWithdrawal?: number; withdrawThreshold?: number }>("/admin/wallet/settings")
+      .then((settings) => setThreshold(settings.withdrawThreshold ?? settings.minWithdrawal ?? 50000))
       .catch(() => undefined);
   }, []);
 
@@ -72,10 +72,7 @@ function GiftsPage() {
       if (edit.id) {
         await mutate(() => api(`/admin/gifts/${edit.id}`, { method: "PATCH", body: toApi(edit) }), edit.id, edit);
       } else {
-        const created = await api<any>("/admin/gifts", { method: "POST", body: toApi(edit) }).catch((e) => {
-          if (!sample) throw e;
-          return { ...toApi(edit), id: `g${Date.now()}` };
-        });
+        const created = await api<any>("/admin/gifts", { method: "POST", body: toApi(edit) });
         add(fromApi(created));
       }
       toast.success("Gift saved — visible in the app immediately");
@@ -87,7 +84,7 @@ function GiftsPage() {
 
   async function saveThreshold() {
     try {
-      await api("/admin/wallet/settings", { method: "PATCH", body: { minWithdrawal: threshold } });
+      await api("/admin/wallet/settings", { method: "PATCH", body: { withdrawThreshold: threshold } });
       toast.success("Cash-out minimum updated");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Save failed");

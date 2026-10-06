@@ -70,8 +70,15 @@ function PaymentsPage() {
   async function save() {
     setSaving(true);
     try {
-      const body: Record<string, unknown> = { ...cfg };
-      delete body.hasCredentials;
+      const { provider, environment, enabled, currency, ipnId, callbackUrl } = cfg;
+      const body: Record<string, unknown> = {
+        provider,
+        environment,
+        enabled,
+        currency,
+        ipnId,
+        callbackUrl,
+      };
       // Keys are sent once and stored encrypted on the server; they are never read back.
       if (key && secret) Object.assign(body, { consumerKey: key, consumerSecret: secret });
       await api("/admin/payments/config", { method: "PATCH", body });
@@ -122,13 +129,13 @@ function PaymentsPage() {
               <div className="flex gap-2">
                 {(["sandbox", "live"] as const).map((m) => (
                   <Button key={m} size="sm" variant={cfg.environment === m ? "default" : "outline"}
-                    onClick={() => setCfg((c) => ({ ...c, environment: m, apiBaseUrl: BASE_URLS[m] }))}>
+                    onClick={() => set("environment", m)}>
                     {m === "sandbox" ? "Test" : "Live"}
                   </Button>
                 ))}
               </div>
             </div>
-            <div className="space-y-2"><Label>Pesapal API address</Label><Input value={cfg.apiBaseUrl} onChange={(e) => set("apiBaseUrl", e.target.value)} /></div>
+            <div className="space-y-2"><Label>Pesapal API address</Label><Input value={BASE_URLS[cfg.environment]} readOnly /></div>
             <div className="space-y-2"><Label>Currency</Label><Input value={cfg.currency} onChange={(e) => set("currency", e.target.value.toUpperCase())} maxLength={3} /></div>
             <div className="space-y-2"><Label>IPN ID (from Pesapal)</Label><Input value={cfg.ipnId} onChange={(e) => set("ipnId", e.target.value)} placeholder="Registered notification ID" /></div>
             <div className="space-y-2"><Label>Return page after payment</Label><Input value={cfg.callbackUrl} onChange={(e) => set("callbackUrl", e.target.value)} /></div>
