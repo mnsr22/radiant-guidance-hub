@@ -60,37 +60,141 @@ const BASE_URLS = {
   live: "https://pay.pesapal.com/v3",
 };
 
+/// The server may wrap the config (`{data}` / `{config}`) or use other field
+/// names. Read all of them so a saved value never "looks" reset on reload.
+function normalise(raw: any): Partial<Config> {
+  const d = raw?.data ?? raw?.config ?? raw ?? {};
+  const env = d.environment ?? d.env ?? d.mode;
+  const out: Partial<Config> = {};
+  if (env) out.environment = String(env).toLowerCase() === "live" || String(env).toLowerCase() === "production" ? "live" : "sandbox";
+  const enabled = d.enabled ?? d.isActive ?? d.active ?? d.isEnabled;
+  if (enabled !== undefined) out.enabled = Boolean(enabled);
+  if (d.currency) out.currency = d.currency;
+  const base = d.apiBaseUrl ?? d.baseUrl ?? d.apiUrl;
+  if (base) out.apiBaseUrl = base;
+  const ipn = d.ipnId ?? d.ipnID ?? d.ipn_id ?? d.notificationId;
+  if (ipn !== undefined && ipn !== null) out.ipnId = String(ipn);
+  const cb = d.callbackUrl ?? d.callbackURL ?? d.callback_url;
+  if (cb) out.callbackUrl = cb;
+  const has = d.hasCredentials ?? d.hasKeys ?? d.credentialsSet ?? (d.consumerKeySet || d.consumerKey ? true : undefined);
+  if (has !== undefined) out.hasCredentials = Boolean(has);
+  return out;
+}
+
+type Notice = { kind: "ok" | "warn" | "error"; text: string } | null;
+
 function PaymentsPage() {
   const [cfg, setCfg] = useState<Config>(DEFAULTS);
   const [key, setKey] = useState("");
   const [secret, setSecret] = useState("");
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
-  const [configError, setConfigError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [saveNotice, setSaveNotice] = useState<Notice>(null);
+  const [testNotice, setTestNotice] = useState<Notice>(null);
+
+  async function load(): Promise<Partial<Config> | null> {
+    try {
+      const d = normalise(await api("/admin/payments/config"));
+      setCfg((c) => ({ ...c, ...d }));
+      setLoadError(null);
+      return d;
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : "Couldn't load saved settings");
+      return null;
+    }
+  }
 
   useEffect(() => {
-    api<Partial<Config>>("/admin/payments/config")
-      .then((d) => {
-        setCfg((current) => ({ ...current, ...d }));
-        setConfigError(null);
-      })
-      .catch((error: unknown) => {
-        const message =
-          error instanceof Error ? error.message : "Could not load saved payment settings";
-        setConfigError(message);
-        toast.error(message);
-      });
+    load();
   }, []);
 
   const set = <K extends keyof Config>(k: K, v: Config[K]) => setCfg((c) => ({ ...c, [k]: v }));
 
   async function save() {
-    if (Boolean(key) !== Boolean(secret)) {
-      toast.error(
-        "Enter both the Pesapal consumer key and secret, or leave both blank to keep the saved credentials.",
-      );
+    if ((key && !secret) || (!key && secret)) {
+      setSaveNotice({ kind: "error", text: "Enter both the consumer key and the consumer secret to replace keys." });
       return;
     }
+    setSaving(true);
+    setSaveNotice(null);
+    const sentKeys = Boolean(key && secret);
+    try {
+      const body: Record<string, unknown> = {
+        provider: cfg.provider,
+        environment: cfg.environment,
+        enabled: cfg.enabled,
+        currency: cfg.currency,
+        apiBaseUrl: cfg.apiBaseUrl,
+        ipnId: cfg.ipnId.trim(),
+        callbackUrl: cfg.callbackUrl.trim(),
+      };
+      // Keys are sent once and stored encrypted on the server; they are never read back.
+      if (sentKeys) Object.assign(body, { consumerKey: key.trim(), consumerSecret: secret.trim() });
+      await api("/admin/payments/config", { method: "PATCH", body });
+
+      // Read back what the server actually stored — this is what the app will use.
+      const stored = await load();
+      if (!stored) {
+        setSaveNotice({ kind: "warn", text: "Sent to the server, but couldn't read the settings back to confirm." });
+        return;
+      }
+      const dropped: string[] = [];
+      if (stored.enabled !== undefined && stored.enabled !== cfg.enabled) dropped.push("Accept payments");
+      if (stored.environment && stored.environment !== cfg.environment) dropped.push("Mode");
+      if ((stored.ipnId ?? "") !== cfg.ipnId.trim()) dropped.push("IPN ID");
+      if (stored.callbackUrl && stored.callbackUrl !== cfg.callbackUrl.trim()) dropped.push("Return page");
+      if (sentKeys && stored.hasCredentials === false) dropped.push("Pesapal keys");
+      if (sentKeys && stored.hasCredentials === undefined) set("hasCredentials", true);
+      setKey("");
+      setSecret("");
+      if (dropped.length) {
+        setSaveNotice({
+          kind: "error",
+          text: `Your server accepted the save but did not keep: ${dropped.join(", ")}. The server's payment settings code needs fixing (see note below).`,
+        });
+      } else {
+        setSaveNotice({ kind: "ok", text: "Saved and confirmed by the server. The app uses these on the next payment." });
+        toast.success("Payment settings saved");
+      }
+    } catch (e) {
+      setSaveNotice({ kind: "error", text: e instanceof Error ? e.message : "Save failed" });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function test() {
+    setTesting(true);
+    setTestNotice(null);
+    try {
+      const r: any = await api("/admin/payments/test-connection", {
+        method: "POST",
+        body: { environment: cfg.environment, apiBaseUrl: cfg.apiBaseUrl },
+      });
+      const ok = r?.ok ?? r?.success ?? r?.data?.ok ?? Boolean(r?.token);
+      const msg = r?.message ?? r?.error ?? r?.data?.message;
+      if (ok) {
+        setTestNotice({ kind: "ok", text: msg ? `Connected to Pesapal — ${msg}` : `Connected to Pesapal (${cfg.environment === "live" ? "live" : "test"} mode).` });
+      } else if (r == null) {
+        setTestNotice({ kind: "error", text: "The server answered with nothing. Its test-connection code isn't returning a result." });
+      } else {
+        setTestNotice({ kind: "error", text: msg ?? "Pesapal rejected the keys. Check they match the selected mode (test keys only work in Test)." });
+      }
+    } catch (e) {
+      setTestNotice({ kind: "error", text: e instanceof Error ? e.message : "Test failed" });
+    } finally {
+      setTesting(false);
+    }
+  }
+
+  const noticeClass = (n: NonNullable<Notice>) =>
+    n.kind === "ok"
+      ? "border-primary/30 bg-primary/5 text-foreground"
+      : n.kind === "warn"
+        ? "border-border bg-muted text-foreground"
+        : "border-destructive/40 bg-destructive/5 text-destructive";
+
     setSaving(true);
     try {
       const { provider, environment, enabled, currency, ipnId, callbackUrl } = cfg;
