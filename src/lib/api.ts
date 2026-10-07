@@ -141,6 +141,14 @@ export async function api<T = unknown>(path: string, opts: ApiOptions = {}): Pro
   return data as T;
 }
 
+/// Resolve a backend-provided media path against the API host. Upload paths
+/// are served beneath `/api`, while signed private-photo URLs already include it.
+export function resolveApiUrl(path: string): string {
+  if (/^https?:\/\//i.test(path)) return path;
+  const apiPath = path.startsWith("/api/") ? path.slice(4) : path;
+  return `${BASE_URL}${apiPath.startsWith("/") ? apiPath : `/${apiPath}`}`;
+}
+
 // ── Auth ───────────────────────────────────────────────────────
 export interface AdminUserInfo {
   id: string;

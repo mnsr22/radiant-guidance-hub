@@ -266,12 +266,14 @@ function ReportsPage() {
         const adminToken = getToken();
         if (!adminToken) throw new Error("Admin session expired.");
         const res = await summariseReport({
-          data: { adminToken, reportType: built.title, metrics: built.summary },
+          reportType: built.title,
+          metrics: built.summary,
         });
         narrative = res.summary;
       } catch (e) {
         // A missing key or quota issue must not block the export.
-        toast.warning("AI overview unavailable — exporting without it.");
+        const reason = e instanceof Error ? ` ${e.message}` : "";
+        toast.warning(`AI overview unavailable.${reason} Exporting without it.`);
         narrative = undefined;
       }
     }
@@ -406,7 +408,7 @@ function ReportsPage() {
                 onClick={exportCsv}
                 disabled={busy !== null}
               >
-                <Download className="h-4 w-4 mr-2" /> Export PDF
+                <Download className="h-4 w-4 mr-2" /> Export CSV
               </Button>
             </div>
           </CardContent>

@@ -1,6 +1,5 @@
-import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { BASE_URL } from "@/lib/api";
+import { api } from "@/lib/api";
 
 const Campaign = z.object({
   recipients: z
@@ -21,11 +20,6 @@ const Campaign = z.object({
   preheader: z.string().max(160).optional(),
 });
 
-const Input = z.object({
-  adminToken: z.string().min(10),
-  ...Campaign.shape,
-});
-
 const Result = z.object({
   sent: z.number().int().nonnegative(),
   failed: z.array(
@@ -36,34 +30,14 @@ const Result = z.object({
   ),
 });
 
-/// Sends dashboard email through the backend's Resend transport. The backend
-/// validates the admin token and keeps the Resend credential server-side.
-export const sendAdminEmails = createServerFn({ method: "POST" })
-  .validator((d: unknown) => Input.parse(d))
-  .handler(async ({ data }) => {
-    const { adminToken, ...campaign } = data;
-    const response = await fetch(`${BASE_URL}/admin/email-campaigns`, {
+/// Sends dashboard email via the authenticated backend; Resend credentials
+/// remain server-side and the dashboard is deployed as a static SPA.
+export async function sendAdminEmails(input: z.input<typeof Campaign>) {
+  const campaign = Campaign.parse(input);
+  return Result.parse(
+    await api<unknown>("/admin/email-campaigns", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${adminToken}`,
-      },
-      body: JSON.stringify(campaign),
-    });
-
-    const result: unknown = await response.json().catch(() => null);
-    if (!response.ok) {
-      const details =
-        typeof result === "object" && result !== null && "message" in result
-          ? result.message
-          : undefined;
-      const message = Array.isArray(details)
-        ? details.join(", ")
-        : typeof details === "string"
-          ? details
-          : `Email sending failed (${response.status})`;
-      throw new Error(message);
-    }
-
-    return Result.parse(result);
-  });
+      body: campaign,
+    }),
+  );
+}

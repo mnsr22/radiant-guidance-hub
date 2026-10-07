@@ -1,6 +1,6 @@
 import { notifyMember } from "@/lib/notify";
 import { useMemo, useState } from "react";
-import { api } from "@/lib/api";
+import { api, resolveApiUrl } from "@/lib/api";
 import { useRemoteList } from "@/lib/remote";
 import {
   Dialog,
@@ -130,7 +130,7 @@ function PhotoModerationPage() {
     reload,
   } = useRemoteList<PhotoRow>("/admin/photos", initialPhotos, (r) => ({
     id: String(r.id),
-    url: r.url ?? r.signedUrl,
+    url: (r.url ?? r.signedUrl) ? resolveApiUrl(r.url ?? r.signedUrl) : undefined,
     userId: r.userId,
     member: r.user?.name ?? r.member ?? "Member",
     email: r.user?.email ?? r.email ?? "",

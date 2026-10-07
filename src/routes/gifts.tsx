@@ -29,6 +29,24 @@ export const Route = createFileRoute("/gifts")({
 
 type GiftRow = { id: string; name: string; emoji: string; price: number; payoutValue: number; active: boolean; currency: string };
 
+const GIFT_ICONS = [
+  { emoji: "🎁", label: "Gift" },
+  { emoji: "🌹", label: "Rose" },
+  { emoji: "💐", label: "Bouquet" },
+  { emoji: "💝", label: "Heart" },
+  { emoji: "🌙", label: "Crescent" },
+  { emoji: "🌴", label: "Dates" },
+  { emoji: "🍫", label: "Chocolate" },
+  { emoji: "🍰", label: "Cake" },
+  { emoji: "🧁", label: "Cupcake" },
+  { emoji: "☕", label: "Tea" },
+  { emoji: "🧸", label: "Teddy" },
+  { emoji: "💍", label: "Ring" },
+  { emoji: "📿", label: "Tasbih" },
+  { emoji: "🧴", label: "Perfume" },
+  { emoji: "📚", label: "Books" },
+] as const;
+
 const SAMPLE: GiftRow[] = [
   { id: "g1", name: "Rose", emoji: "🌹", price: 2000, payoutValue: 1400, active: true, currency: "UGX" },
   { id: "g2", name: "Dates box", emoji: "🌴", price: 5000, payoutValue: 3500, active: true, currency: "UGX" },
@@ -39,10 +57,11 @@ const SAMPLE: GiftRow[] = [
 const empty: GiftRow = { id: "", name: "", emoji: "🎁", price: 0, payoutValue: 0, active: true, currency: "UGX" };
 
 function fromApi(row: any): GiftRow {
+  const image = String(row.image ?? "🎁");
   return {
     id: String(row.id),
     name: row.name ?? "",
-    emoji: row.image ?? "🎁",
+    emoji: GIFT_ICONS.some((icon) => icon.emoji === image) ? image : "🎁",
     price: Number(row.price ?? 0),
     payoutValue: Number(row.cashValue ?? 0),
     active: row.enabled !== false,
@@ -148,10 +167,26 @@ function GiftsPage() {
           <DialogHeader><DialogTitle>{edit?.id ? "Edit gift" : "New gift"}</DialogTitle></DialogHeader>
           {edit && (
             <div className="grid gap-3">
-              <div className="grid grid-cols-4 gap-2">
-                <div><Label>Icon</Label><Input value={edit.emoji} onChange={(e) => setEdit({ ...edit, emoji: e.target.value })} /></div>
-                <div className="col-span-3"><Label>Name</Label><Input value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} /></div>
+              <div>
+                <Label>Gift icon</Label>
+                <div className="mt-2 grid grid-cols-5 gap-2">
+                  {GIFT_ICONS.map(({ emoji, label }) => (
+                    <Button
+                      key={emoji}
+                      type="button"
+                      variant={edit.emoji === emoji ? "default" : "outline"}
+                      aria-label={label}
+                      aria-pressed={edit.emoji === emoji}
+                      title={label}
+                      className="h-11 text-xl"
+                      onClick={() => setEdit({ ...edit, emoji })}
+                    >
+                      {emoji}
+                    </Button>
+                  ))}
+                </div>
               </div>
+              <div><Label>Name</Label><Input value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} /></div>
               <div><Label>Price the buyer pays</Label><Input type="number" value={edit.price} onChange={(e) => setEdit({ ...edit, price: Number(e.target.value) })} /></div>
               <div><Label>Value credited to the receiver</Label><Input type="number" value={edit.payoutValue} onChange={(e) => setEdit({ ...edit, payoutValue: Number(e.target.value) })} /></div>
             </div>

@@ -204,19 +204,16 @@ function EmailPage() {
     setSending(true);
     try {
       const result = await sendAdminEmails({
-        data: {
-          adminToken,
-          recipients: recipients.map((r) => ({
-            email: r.email,
-            name: r.name || undefined,
-          })),
-          subject: subject.trim(),
-          body: body.trim(),
-          template: design,
-          heading: heading.trim() || undefined,
-          ctaLabel: ctaLabel.trim() || undefined,
-          ctaUrl: ctaUrl.trim() || undefined,
-        },
+        recipients: recipients.map((r) => ({
+          email: r.email,
+          name: r.name || undefined,
+        })),
+        subject: subject.trim(),
+        body: body.trim(),
+        template: design,
+        heading: heading.trim() || undefined,
+        ctaLabel: ctaLabel.trim() || undefined,
+        ctaUrl: ctaUrl.trim() || undefined,
       });
       if (result.sent > 0)
         toast.success(`Resend accepted ${result.sent} email${result.sent === 1 ? "" : "s"}`);
