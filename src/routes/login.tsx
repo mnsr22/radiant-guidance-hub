@@ -38,7 +38,7 @@ function LoginPage() {
         navigate({ to: "/" });
       } else {
         const result = await adminLogin(email.trim(), password);
-        if ("requiresAdminOtp" in result) {
+        if (result.requiresAdminOtp === true) {
           setChallengeId(result.challengeId);
           setCode(result.otpCode ?? "");
           setCodeNotice(

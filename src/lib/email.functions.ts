@@ -39,7 +39,7 @@ const Result = z.object({
 /// Sends dashboard email through the backend's Resend transport. The backend
 /// validates the admin token and keeps the Resend credential server-side.
 export const sendAdminEmails = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => Input.parse(d))
+  .validator((d: unknown) => Input.parse(d))
   .handler(async ({ data }) => {
     const { adminToken, ...campaign } = data;
     const response = await fetch(`${BASE_URL}/admin/email-campaigns`, {

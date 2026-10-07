@@ -155,9 +155,15 @@ export interface AdminLoginChallenge {
   otpCode?: string;
 }
 
+export interface AdminLoginSuccess {
+  requiresAdminOtp?: false;
+  user: AdminUserInfo;
+  accessToken: string;
+}
+
 export type AdminLoginResult =
   | AdminLoginChallenge
-  | { user: AdminUserInfo; accessToken: string };
+  | AdminLoginSuccess;
 
 /// Logs in via the shared /auth/login and requires the admin role. Stores the
 /// access token only after the server confirms the complete admin login.
@@ -167,7 +173,7 @@ export async function adminLogin(email: string, password: string): Promise<Admin
     body: { email, password },
     auth: false,
   });
-  if ("requiresAdminOtp" in res && res.requiresAdminOtp) {
+  if (res.requiresAdminOtp === true) {
     if (!res.challengeId) throw new ApiError(500, "The server returned an invalid OTP challenge.");
     return res;
   }

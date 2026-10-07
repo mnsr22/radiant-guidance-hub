@@ -20,7 +20,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { verificationApi } from '@/lib/api/verification-api';
-import { notifyMember } from '@/lib/notify';
 import { DocumentGallery, extractDocuments, documentTypeLabel } from './DocumentGallery';
 import { toast } from 'sonner';
 
@@ -96,7 +95,6 @@ export function VerificationDetailModal({
       setReviewing('photo');
       const reason = rejectionReason === 'Other' ? customReason : rejectionReason;
       await verificationApi.reviewPhotoVerification(userId, status, reason);
-      void notifyMember(member, { kind: 'verification', type: 'photo', status, reason: reason || undefined });
       toast.success(`Profile photo ${status} successfully`);
       await fetchVerificationData();
       setRejectionReason('');
@@ -119,7 +117,6 @@ export function VerificationDetailModal({
       setReviewing('phone');
       const reason = rejectionReason === 'Other' ? customReason : rejectionReason;
       await verificationApi.reviewPhoneVerification(userId, status, reason);
-      void notifyMember(member, { kind: 'verification', type: 'phone', status, reason: reason || undefined });
       toast.success(`Phone ${status} successfully`);
       await fetchVerificationData();
       setRejectionReason('');
@@ -142,7 +139,6 @@ export function VerificationDetailModal({
       setReviewing('identity');
       const reason = rejectionReason === 'Other' ? customReason : rejectionReason;
       await verificationApi.reviewIdentityVerification(userId, status, reason);
-      void notifyMember(member, { kind: 'verification', type: 'identity', status, reason: reason || undefined });
       toast.success(`Identity ${status} successfully`);
       await fetchVerificationData();
       setRejectionReason('');

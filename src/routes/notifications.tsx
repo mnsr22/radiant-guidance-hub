@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Send, Bell, Sparkles, Loader2 } from "lucide-react";
+import { Send, Bell, X, Search } from "lucide-react";
 import { toast } from "sonner";
 import { AdminLayout, PageHeader } from "@/components/admin/layout";
 import { Card } from "@/components/ui/card";
@@ -23,9 +23,6 @@ import {
   useUsers,
 } from "@/lib/admin-hooks";
 import { Checkbox } from "@/components/ui/checkbox";
-import { generateNotificationCopy } from "@/lib/ai.functions";
-import { getToken } from "@/lib/api";
-import { X, Search } from "lucide-react";
 
 export const Route = createFileRoute("/notifications")({ component: NotificationsPage });
 
@@ -40,6 +37,34 @@ const audienceLabel: Record<string, string> = {
   banned: "Banned accounts",
   selected: "Selected users",
 };
+
+const notificationTemplates = {
+  community: {
+    label: "Community update",
+    title: "An update from Halal Connect",
+    body: "As-salamu alaykum. We have an update for the Halal Connect community. Open the app to learn more.",
+  },
+  safety: {
+    label: "Safety reminder",
+    title: "A reminder to stay safe",
+    body: "Please keep conversations respectful, protect your personal information, and report anything that makes you feel unsafe.",
+  },
+  verification: {
+    label: "Verification reminder",
+    title: "Complete your profile verification",
+    body: "If you have not already done so, you can submit your verification from your profile to help members feel confident connecting with you.",
+  },
+  maintenance: {
+    label: "Service update",
+    title: "Halal Connect service update",
+    body: "We are making improvements to Halal Connect. Some features may be temporarily unavailable. Thank you for your patience.",
+  },
+  ramadan: {
+    label: "Ramadan greeting",
+    title: "Ramadan Mubarak",
+    body: "May this blessed month bring you peace, patience, and closeness to Allah. Ramadan Mubarak from the Halal Connect team.",
+  },
+} as const;
 
 function rel(iso?: string) {
   if (!iso) return "";
@@ -57,39 +82,24 @@ type Mode = "segment" | "users";
 function NotificationsPage() {
   const [mode, setMode] = useState<Mode>("segment");
   const [audience, setAudience] = useState("all");
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
+  const [templateKey, setTemplateKey] =
+    useState<keyof typeof notificationTemplates>("community");
+  const [title, setTitle] = useState<string>(
+    notificationTemplates.community.title,
+  );
+  const [body, setBody] = useState<string>(
+    notificationTemplates.community.body,
+  );
   const [sending, setSending] = useState(false);
   const [expandedSentId, setExpandedSentId] = useState<string | null>(null);
 
-  // AI copy assistant
-  const [brief, setBrief] = useState("");
-  const [aiBusy, setAiBusy] = useState(false);
-  const [ideas, setIdeas] = useState<{ title: string; body: string }[]>([]);
-
-  async function generateCopy() {
-    if (brief.trim().length < 3) {
-      toast.error('Describe the notification first (e.g. "Ramadan starts in 3 days")');
-      return;
-    }
-    setAiBusy(true);
-    try {
-      const adminToken = getToken();
-      if (!adminToken) throw new Error("Your admin session has expired. Please sign in again.");
-      const res = await generateNotificationCopy({
-        data: {
-          adminToken,
-          brief: brief.trim(),
-          audience: mode === "segment" ? audienceLabel[audience] : "selected members",
-          count: 3,
-        },
-      });
-      setIdeas(res.suggestions);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "AI copy generation failed");
-    } finally {
-      setAiBusy(false);
-    }
+  function applyTemplate(value: string) {
+    const key = value as keyof typeof notificationTemplates;
+    const template = notificationTemplates[key];
+    if (!template) return;
+    setTemplateKey(key);
+    setTitle(template.title);
+    setBody(template.body);
   }
 
   // Recipient picker (mode === "users")
@@ -164,8 +174,7 @@ function NotificationsPage() {
       toast.success(
         `Notification sent to ${reach.toLocaleString()} ${reach === 1 ? "user" : "users"}`,
       );
-      setTitle("");
-      setBody("");
+      applyTemplate("community");
       setPicked([]);
       setSearch("");
     } catch (e) {
@@ -294,43 +303,20 @@ function NotificationsPage() {
                 </p>
               </div>
             )}
-            <div className="rounded-lg border bg-muted/20 p-3 space-y-2">
-              <Label className="text-xs flex items-center gap-1.5">
-                <Sparkles className="h-3.5 w-3.5 text-primary" /> AI copywriter
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Ramadan starts in 3 days — encourage duas and profile updates"
-                  value={brief}
-                  onChange={(e) => setBrief(e.target.value)}
-                  maxLength={300}
-                />
-                <Button type="button" variant="outline" disabled={aiBusy} onClick={generateCopy}>
-                  {aiBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Generate"}
-                </Button>
-              </div>
-              {ideas.length > 0 && (
-                <div className="space-y-1.5">
-                  {ideas.map((s, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => {
-                        setTitle(s.title);
-                        setBody(s.body);
-                        toast.success("Copy applied — edit before sending");
-                      }}
-                      className="w-full text-left rounded-md border bg-background px-3 py-2 hover:border-primary transition-colors"
-                    >
-                      <div className="text-sm font-medium">{s.title}</div>
-                      <div className="text-xs text-muted-foreground">{s.body}</div>
-                    </button>
+            <div>
+              <Label className="text-xs">Notification template</Label>
+              <Select value={templateKey} onValueChange={applyTemplate}>
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(notificationTemplates).map(([key, template]) => (
+                    <SelectItem key={key} value={key}>
+                      {template.label}
+                    </SelectItem>
                   ))}
-                </div>
-              )}
-              <p className="text-[11px] text-muted-foreground">
-                Drafts are suggestions — review and edit before sending.
-              </p>
+                </SelectContent>
+              </Select>
             </div>
 
             <div>

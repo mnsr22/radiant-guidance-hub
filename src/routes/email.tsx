@@ -199,11 +199,13 @@ function EmailPage() {
       return toast.error("Campaigns are limited to 200 recipients at a time");
     if (!subject.trim() || !body.trim()) return toast.error("Subject and message are required");
     if (ctaLabel && !ctaUrl) return toast.error("Add a link for the button");
+    const adminToken = getToken();
+    if (!adminToken) return toast.error("Your admin session has expired. Please sign in again.");
     setSending(true);
     try {
       const result = await sendAdminEmails({
         data: {
-          adminToken: getToken() ?? "",
+          adminToken,
           recipients: recipients.map((r) => ({
             email: r.email,
             name: r.name || undefined,
@@ -217,15 +219,31 @@ function EmailPage() {
         },
       });
       if (result.sent > 0)
-        toast.success(`Email sent to ${result.sent} recipient${result.sent === 1 ? "" : "s"}`);
+        toast.success(`Resend accepted ${result.sent} email${result.sent === 1 ? "" : "s"}`);
       if (result.failed.length > 0) {
         toast.error(
-          `${result.failed.length} failed — ${result.failed[0]?.error ?? "unknown error"}`,
+          `${result.failed.length} not accepted — ${result.failed[0]?.error ?? "unknown error"}`,
         );
       }
-      if (result.sent > 0 && result.failed.length === 0) {
-        setSelected({});
-        setManual("");
+      if (result.sent > 0) {
+        const failedEmails = new Set(
+          result.failed.map((failure) => failure.email.toLowerCase()),
+        );
+        setSelected(
+          Object.fromEntries(
+            Object.entries(selected).filter(([, recipient]) =>
+              failedEmails.has(recipient.email.toLowerCase()),
+            ),
+          ),
+        );
+        setManual(
+          manualRecipients
+            .filter((recipient) =>
+              failedEmails.has(recipient.email.toLowerCase()),
+            )
+            .map((recipient) => recipient.email)
+            .join(", "),
+        );
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to send email");

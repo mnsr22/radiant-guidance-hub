@@ -41,6 +41,7 @@ function MessagingPage() {
   const [template, setTemplate] = useState("custom");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+  const [sending, setSending] = useState(false);
 
   const { data: usersData } = useUsers();
   const users = usersData?.users ?? [];
@@ -114,29 +115,48 @@ function MessagingPage() {
     }
   }
 
-  function send() {
+  async function send() {
+    if (sending) return;
     if (!subject.trim() || !body.trim()) {
       toast.error("Subject and message are required");
       return;
     }
-    sendBulk.mutate(
-      { userIds: composeTarget.map((u) => u.id), subject, body },
-      {
-        onSuccess: () => {
-          toast.success(`Message sent to ${composeTarget.length} user${composeTarget.length === 1 ? "" : "s"}`);
-          setComposeOpen(false);
-          setSelected({});
-        },
-        onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to send"),
-      },
-    );
+    setSending(true);
+    try {
+      const result = await sendBulk.mutateAsync({
+        userIds: composeTarget.map((u) => u.id),
+        subject,
+        body,
+      });
+      if (
+        typeof result !== "object" ||
+        result === null ||
+        !("sent" in result) ||
+        typeof result.sent !== "number"
+      ) {
+        throw new Error("The server returned an invalid message result.");
+      }
+      if (result.sent > 0) {
+        toast.success(
+          `Message added to the support inbox for ${result.sent} user${result.sent === 1 ? "" : "s"}`,
+        );
+      } else {
+        toast.warning("No messages were added to member inboxes.");
+      }
+      setComposeOpen(false);
+      setSelected({});
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to send");
+    } finally {
+      setSending(false);
+    }
   }
 
   return (
     <AdminLayout>
       <PageHeader
         title="Messaging"
-        description="Send follow-ups, warnings, or announcements to any user — by category."
+        description="Send private messages to member support inboxes. Use Notifications for activity-feed announcements."
         actions={
           <Button
             size="sm"
@@ -247,7 +267,7 @@ function MessagingPage() {
       <Dialog open={composeOpen} onOpenChange={setComposeOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Compose message</DialogTitle>
+            <DialogTitle>Compose support-inbox message</DialogTitle>
             <DialogDescription>
               Sending to {composeTarget.length} user{composeTarget.length === 1 ? "" : "s"}
               {composeTarget.length === 1 && `: ${composeTarget[0].name}`}
@@ -296,9 +316,13 @@ function MessagingPage() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setComposeOpen(false)}>Cancel</Button>
-            <Button onClick={send} className="bg-gradient-primary text-primary-foreground border-0">
+            <Button
+              onClick={send}
+              disabled={sending}
+              className="bg-gradient-primary text-primary-foreground border-0"
+            >
               <Send className="h-4 w-4 mr-2" />
-              Send message
+              {sending ? "Sending…" : "Send inbox message"}
             </Button>
           </DialogFooter>
         </DialogContent>
