@@ -149,17 +149,58 @@ export interface AdminUserInfo {
   role: string;
 }
 
+export interface AdminLoginChallenge {
+  requiresAdminOtp: true;
+  challengeId: string;
+  otpCode?: string;
+}
+
+export type AdminLoginResult =
+  | AdminLoginChallenge
+  | { user: AdminUserInfo; accessToken: string };
+
 /// Logs in via the shared /auth/login and requires the admin role. Stores the
-/// access token on success.
-export async function adminLogin(email: string, password: string): Promise<AdminUserInfo> {
-  const res = await api<{ user: AdminUserInfo; accessToken: string }>("/auth/login", {
+/// access token only after the server confirms the complete admin login.
+export async function adminLogin(email: string, password: string): Promise<AdminLoginResult> {
+  const res = await api<AdminLoginResult>("/auth/login", {
     method: "POST",
     body: { email, password },
     auth: false,
   });
+  if ("requiresAdminOtp" in res && res.requiresAdminOtp) {
+    if (!res.challengeId) throw new ApiError(500, "The server returned an invalid OTP challenge.");
+    return res;
+  }
+  if (res.user.role !== "admin") {
+    throw new ApiError(403, "This account is not an admin.");
+  }
+  setToken(res.accessToken);
+  return res;
+}
+
+export async function verifyAdminLoginOtp(
+  challengeId: string,
+  code: string,
+): Promise<AdminUserInfo> {
+  const res = await api<{ user: AdminUserInfo; accessToken: string }>(
+    "/auth/admin-login/verify",
+    { method: "POST", body: { challengeId, code }, auth: false },
+  );
   if (res.user.role !== "admin") {
     throw new ApiError(403, "This account is not an admin.");
   }
   setToken(res.accessToken);
   return res.user;
+}
+
+export async function resendAdminLoginOtp(challengeId: string): Promise<AdminLoginChallenge> {
+  const res = await api<AdminLoginChallenge>("/auth/admin-login/resend", {
+    method: "POST",
+    body: { challengeId },
+    auth: false,
+  });
+  if (!res.requiresAdminOtp || !res.challengeId) {
+    throw new ApiError(500, "The server returned an invalid OTP challenge.");
+  }
+  return res;
 }

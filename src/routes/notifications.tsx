@@ -24,6 +24,7 @@ import {
 } from "@/lib/admin-hooks";
 import { Checkbox } from "@/components/ui/checkbox";
 import { generateNotificationCopy } from "@/lib/ai.functions";
+import { getToken } from "@/lib/api";
 import { X, Search } from "lucide-react";
 
 export const Route = createFileRoute("/notifications")({ component: NotificationsPage });
@@ -37,6 +38,7 @@ const audienceLabel: Record<string, string> = {
   free: "Free users",
   verified: "Verified profiles",
   banned: "Banned accounts",
+  selected: "Selected users",
 };
 
 function rel(iso?: string) {
@@ -58,6 +60,7 @@ function NotificationsPage() {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
+  const [expandedSentId, setExpandedSentId] = useState<string | null>(null);
 
   // AI copy assistant
   const [brief, setBrief] = useState("");
@@ -66,13 +69,16 @@ function NotificationsPage() {
 
   async function generateCopy() {
     if (brief.trim().length < 3) {
-      toast.error("Describe the notification first (e.g. \"Ramadan starts in 3 days\")");
+      toast.error('Describe the notification first (e.g. "Ramadan starts in 3 days")');
       return;
     }
     setAiBusy(true);
     try {
+      const adminToken = getToken();
+      if (!adminToken) throw new Error("Your admin session has expired. Please sign in again.");
       const res = await generateNotificationCopy({
         data: {
+          adminToken,
           brief: brief.trim(),
           audience: mode === "segment" ? audienceLabel[audience] : "selected members",
           count: 3,
@@ -128,9 +134,12 @@ function NotificationsPage() {
   const sent = ((history ?? []) as any[]).map((b) => ({
     id: b.id,
     title: b.title,
-    audience: audienceLabel[b.audience] ?? b.audience,
+    audience:
+      audienceLabel[b.audience] ??
+      (String(b.audience).startsWith("direct:") ? "Selected users" : b.audience),
     date: rel(b.createdAt),
     reach: (b.reach ?? 0).toLocaleString(),
+    message: b.message ?? "",
   }));
 
   async function handleSend() {
@@ -306,7 +315,11 @@ function NotificationsPage() {
                     <button
                       key={i}
                       type="button"
-                      onClick={() => { setTitle(s.title); setBody(s.body); toast.success("Copy applied — edit before sending"); }}
+                      onClick={() => {
+                        setTitle(s.title);
+                        setBody(s.body);
+                        toast.success("Copy applied — edit before sending");
+                      }}
                       className="w-full text-left rounded-md border bg-background px-3 py-2 hover:border-primary transition-colors"
                     >
                       <div className="text-sm font-medium">{s.title}</div>
@@ -365,16 +378,32 @@ function NotificationsPage() {
                 No announcements sent yet.
               </div>
             )}
-            {sent.map((n) => (
-              <div key={n.id} className="p-3 rounded-lg border hover:bg-muted/30 transition-colors">
-                <div className="text-sm font-medium">{n.title}</div>
-                <div className="text-xs text-muted-foreground mt-1 flex items-center justify-between">
-                  <span>{n.date}</span>
-                  <Badge variant="secondary">{n.reach}</Badge>
-                </div>
-                <div className="text-[11px] text-muted-foreground mt-1">{n.audience}</div>
-              </div>
-            ))}
+            {sent.map((n) => {
+              const expanded = expandedSentId === n.id;
+              return (
+                <button
+                  key={n.id}
+                  type="button"
+                  aria-expanded={expanded}
+                  onClick={() => setExpandedSentId(expanded ? null : n.id)}
+                  className="w-full text-left p-3 rounded-lg border hover:bg-muted/30 transition-colors"
+                >
+                  <div className="text-sm font-medium">{n.title}</div>
+                  <div className="text-xs text-muted-foreground mt-1 flex items-center justify-between">
+                    <span>{n.date}</span>
+                    <Badge variant="secondary">{n.reach}</Badge>
+                  </div>
+                  {expanded && (
+                    <>
+                      <div className="text-sm whitespace-pre-wrap mt-2">{n.message}</div>
+                      <div className="text-[11px] text-muted-foreground mt-2">
+                        Audience: {n.audience} · Sent to {n.reach} {n.reach === "1" ? "user" : "users"}
+                      </div>
+                    </>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </Card>
       </div>

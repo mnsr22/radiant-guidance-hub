@@ -2,7 +2,15 @@ import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
-  LifeBuoy, Search, Download, Send, CheckCircle2, Clock, Trash2, ShieldAlert, Sparkles, Loader2,
+  LifeBuoy,
+  Search,
+  Download,
+  Send,
+  CheckCircle2,
+  Clock,
+  Trash2,
+  ShieldAlert,
+  Sparkles,
 } from "lucide-react";
 import { AdminLayout, PageHeader } from "@/components/admin/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -13,23 +21,45 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { downloadCSV } from "@/lib/csv";
-import { suggestSupportReply } from "@/lib/ai.functions";
 import {
-  useTickets, useTicket, useTicketMutations,
-  useDeletionRequests, useDeletionMutations,
+  useTickets,
+  useTicket,
+  useTicketMutations,
+  useDeletionRequests,
+  useDeletionMutations,
 } from "@/lib/admin-hooks";
 import type { SupportTicket, TicketStatus, DeletionRequest } from "@/store/admin-api";
 
@@ -40,7 +70,8 @@ export const Route = createFileRoute("/tickets")({
       { title: "Support Tickets — Halal Connect Admin" },
       {
         name: "description",
-        content: "Triage, reply to and close Halal Connect support tickets and account deletion requests.",
+        content:
+          "Triage, reply to and close Halal Connect support tickets and account deletion requests.",
       },
       { property: "og:title", content: "Support Tickets — Halal Connect Admin" },
       { property: "og:description", content: "Ticket triage and account deletion review." },
@@ -89,8 +120,12 @@ function TicketsPage() {
             <Trash2 className="h-4 w-4 mr-1.5" /> Deletion Requests
           </TabsTrigger>
         </TabsList>
-        <TabsContent value="tickets"><TicketsTab /></TabsContent>
-        <TabsContent value="deletions"><DeletionsTab /></TabsContent>
+        <TabsContent value="tickets">
+          <TicketsTab />
+        </TabsContent>
+        <TabsContent value="deletions">
+          <DeletionsTab />
+        </TabsContent>
       </Tabs>
     </AdminLayout>
   );
@@ -159,7 +194,9 @@ function TicketsTab() {
               />
             </div>
             <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All statuses</SelectItem>
                 <SelectItem value="open">Open</SelectItem>
@@ -168,11 +205,15 @@ function TicketsTab() {
               </SelectContent>
             </Select>
             <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All categories</SelectItem>
                 {CATEGORIES.map((c) => (
-                  <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>
+                  <SelectItem key={c} value={c} className="capitalize">
+                    {c}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -193,14 +234,20 @@ function TicketsTab() {
               <TableBody>
                 {isLoading && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-10">
+                    <TableCell
+                      colSpan={6}
+                      className="text-center text-sm text-muted-foreground py-10"
+                    >
                       Loading tickets…
                     </TableCell>
                   </TableRow>
                 )}
                 {!isLoading && tickets.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-10">
+                    <TableCell
+                      colSpan={6}
+                      className="text-center text-sm text-muted-foreground py-10"
+                    >
                       No tickets match these filters.
                     </TableCell>
                   </TableRow>
@@ -216,7 +263,9 @@ function TicketsTab() {
                       <div className="text-xs text-muted-foreground">{t.email}</div>
                     </TableCell>
                     <TableCell className="hidden sm:table-cell capitalize">{t.category}</TableCell>
-                    <TableCell><StatusBadge status={t.status} /></TableCell>
+                    <TableCell>
+                      <StatusBadge status={t.status} />
+                    </TableCell>
                     <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">
                       {fmt(t.createdAt)}
                     </TableCell>
@@ -278,32 +327,20 @@ function TicketDialog({ id, onClose }: { id: string | null; onClose: () => void 
   const { reply, setStatus } = useTicketMutations();
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
-  const [aiBusy, setAiBusy] = useState(false);
   const [aiNote, setAiNote] = useState<{ handoff: boolean; reason: string } | null>(null);
 
-  async function suggest() {
+  function suggest() {
     if (!data) return;
-    setAiBusy(true);
     setAiNote(null);
-    try {
-      const res = await suggestSupportReply({
-        data: {
-          subject: data.subject,
-          message: data.message,
-          category: data.category,
-          history: (data.replies ?? []).map((r) => ({ fromAdmin: r.fromAdmin, body: r.body })),
-        },
-      });
-      setBody(res.reply);
-      setAiNote({ handoff: res.handoff, reason: res.reason });
-      toast.success(res.handoff ? "Draft ready — needs a human decision" : "Draft ready");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "AI suggestion failed");
-    } finally {
-      setAiBusy(false);
-    }
+    setBody(
+      "Thank you for contacting Halal Connect Support. We have received your message and a member of our team will review it and follow up here.",
+    );
+    setAiNote({
+      handoff: true,
+      reason:
+        "This privacy-safe acknowledgement is a template; ticket content is not sent to free-tier Gemini.",
+    });
   }
-
 
   function send(close: boolean) {
     if (!id) return;
@@ -340,13 +377,17 @@ function TicketDialog({ id, onClose }: { id: string | null; onClose: () => void 
           </DialogDescription>
         </DialogHeader>
 
-        {isLoading && <div className="py-8 text-center text-sm text-muted-foreground">Loading…</div>}
+        {isLoading && (
+          <div className="py-8 text-center text-sm text-muted-foreground">Loading…</div>
+        )}
 
         {data && (
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-2 text-xs">
               <StatusBadge status={data.status} />
-              <Badge variant="outline" className="capitalize">{data.category}</Badge>
+              <Badge variant="outline" className="capitalize">
+                {data.category}
+              </Badge>
               {data.appVersion && <Badge variant="outline">v{data.appVersion}</Badge>}
               {data.os && <Badge variant="outline">{data.os}</Badge>}
               {data.device && <Badge variant="outline">{data.device}</Badge>}
@@ -367,8 +408,11 @@ function TicketDialog({ id, onClose }: { id: string | null; onClose: () => void 
                     }`}
                   >
                     <div className="whitespace-pre-wrap break-words">{r.body}</div>
-                    <div className={`text-[10px] mt-1 ${r.fromAdmin ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
-                      {r.authorName ? `${r.authorName} · ` : ""}{fmt(r.createdAt)}
+                    <div
+                      className={`text-[10px] mt-1 ${r.fromAdmin ? "text-primary-foreground/70" : "text-muted-foreground"}`}
+                    >
+                      {r.authorName ? `${r.authorName} · ` : ""}
+                      {fmt(r.createdAt)}
                     </div>
                   </div>
                 </div>
@@ -378,11 +422,15 @@ function TicketDialog({ id, onClose }: { id: string | null; onClose: () => void 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="reply">Reply</Label>
-                <Button type="button" variant="outline" size="sm" disabled={aiBusy} onClick={suggest}>
-                  {aiBusy ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5 mr-1.5 text-primary" />}
-                  {aiBusy ? "Drafting…" : "Suggest with AI"}
+                <Button type="button" variant="outline" size="sm" onClick={suggest}>
+                  <Sparkles className="h-3.5 w-3.5 mr-1.5 text-primary" />
+                  Draft safe acknowledgement
                 </Button>
               </div>
+              <p className="text-xs text-muted-foreground">
+                Ticket messages may contain personal information, so they are not sent to free-tier
+                Gemini.
+              </p>
               <Textarea
                 id="reply"
                 value={body}
@@ -392,9 +440,14 @@ function TicketDialog({ id, onClose }: { id: string | null; onClose: () => void 
                 maxLength={4000}
               />
               {aiNote && (
-                <p className={`text-[11px] ${aiNote.handoff ? "text-amber-600" : "text-muted-foreground"}`}>
+                <p
+                  className={`text-[11px] ${aiNote.handoff ? "text-amber-600" : "text-muted-foreground"}`}
+                >
                   {aiNote.handoff ? "Human review needed: " : "AI note: "}
-                  {aiNote.reason || (aiNote.handoff ? "This request needs an admin decision." : "Draft is ready to review.")}
+                  {aiNote.reason ||
+                    (aiNote.handoff
+                      ? "This request needs an admin decision."
+                      : "Draft is ready to review.")}
                 </p>
               )}
             </div>
@@ -471,7 +524,9 @@ function DeletionsTab() {
           </div>
           <div className="flex gap-2">
             <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
@@ -500,14 +555,20 @@ function DeletionsTab() {
             <TableBody>
               {isLoading && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-10">
+                  <TableCell
+                    colSpan={5}
+                    className="text-center text-sm text-muted-foreground py-10"
+                  >
                     Loading requests…
                   </TableCell>
                 </TableRow>
               )}
               {!isLoading && requests.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-10">
+                  <TableCell
+                    colSpan={5}
+                    className="text-center text-sm text-muted-foreground py-10"
+                  >
                     No deletion requests.
                   </TableCell>
                 </TableRow>
@@ -519,9 +580,13 @@ function DeletionsTab() {
                     {r.phone && <div className="text-xs text-muted-foreground">{r.phone}</div>}
                   </TableCell>
                   <TableCell className="hidden md:table-cell max-w-[280px]">
-                    <span className="text-sm text-muted-foreground line-clamp-2">{r.reason || "—"}</span>
+                    <span className="text-sm text-muted-foreground line-clamp-2">
+                      {r.reason || "—"}
+                    </span>
                   </TableCell>
-                  <TableCell><StatusBadge status={r.status} /></TableCell>
+                  <TableCell>
+                    <StatusBadge status={r.status} />
+                  </TableCell>
                   <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">
                     {fmt(r.requestedAt)}
                   </TableCell>

@@ -9,16 +9,30 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import { downloadCSV } from "@/lib/csv";
 import { generateReportPdf } from "@/lib/report-pdf";
 import { summariseReport } from "@/lib/ai.functions";
+import { getToken } from "@/lib/api";
 import {
-  useUsers, useSubscriptions, useTickets, useDeletionRequests, useNotificationHistory,
+  useUsers,
+  useSubscriptions,
+  useTickets,
+  useDeletionRequests,
+  useNotificationHistory,
 } from "@/lib/admin-hooks";
 
 export const Route = createFileRoute("/reports")({
@@ -43,8 +57,16 @@ type ReportKey = "users" | "subscriptions" | "support" | "deletions" | "notifica
 
 const REPORTS: { key: ReportKey; label: string; description: string }[] = [
   { key: "users", label: "Members", description: "Profiles, status, verification and plan." },
-  { key: "subscriptions", label: "Subscriptions", description: "Active plans, providers and renewals." },
-  { key: "support", label: "Support tickets", description: "Ticket volume, categories and status." },
+  {
+    key: "subscriptions",
+    label: "Subscriptions",
+    description: "Active plans, providers and renewals.",
+  },
+  {
+    key: "support",
+    label: "Support tickets",
+    description: "Ticket volume, categories and status.",
+  },
   { key: "deletions", label: "Deletion requests", description: "Account deletion compliance log." },
   { key: "notifications", label: "Notifications", description: "Campaigns sent and their reach." },
 ];
@@ -91,14 +113,20 @@ function ReportsPage() {
     const matchStatus = (v: unknown) => status === "all" || s(v).toLowerCase() === status;
 
     if (type === "users") {
-      const rows = ((usersData?.users ?? []) as Record<string, any>[])
-        .filter((u) => matchStatus(u.status) && inRange(u.joined ?? u.createdAt, from, to));
+      const rows = ((usersData?.users ?? []) as Record<string, any>[]).filter(
+        (u) => matchStatus(u.status) && inRange(u.joined ?? u.createdAt, from, to),
+      );
       return {
         title: "Member Report",
         columns: ["Name", "Email", "Gender", "Country", "Status", "Verified", "Premium", "Joined"],
         rows: rows.map((u) => [
-          s(u.name), s(u.email), s(u.gender), s(u.country ?? u.city),
-          s(u.status), u.verified ? "Yes" : "No", u.premium ? "Yes" : "No",
+          s(u.name),
+          s(u.email),
+          s(u.gender),
+          s(u.country ?? u.city),
+          s(u.status),
+          u.verified ? "Yes" : "No",
+          u.premium ? "Yes" : "No",
           d(u.joined ?? u.createdAt),
         ]),
         summary: [
@@ -111,15 +139,21 @@ function ReportsPage() {
     }
 
     if (type === "subscriptions") {
-      const rows = ((subsData ?? []) as Record<string, any>[])
-        .filter((x) => matchStatus(x.status) && inRange(x.createdAt ?? x.startedAt, from, to));
+      const rows = ((subsData ?? []) as Record<string, any>[]).filter(
+        (x) => matchStatus(x.status) && inRange(x.createdAt ?? x.startedAt, from, to),
+      );
       return {
         title: "Subscription Report",
         columns: ["Member", "Email", "Plan", "Tier", "Provider", "Status", "Interval", "Renews"],
         rows: rows.map((x) => [
-          s(x.userName ?? x.user?.name), s(x.userEmail ?? x.user?.email),
-          s(x.planName ?? x.plan?.name), s(x.tier ?? x.plan?.tier), s(x.provider),
-          s(x.status), s(x.interval ?? x.plan?.interval), d(x.currentPeriodEnd),
+          s(x.userName ?? x.user?.name),
+          s(x.userEmail ?? x.user?.email),
+          s(x.planName ?? x.plan?.name),
+          s(x.tier ?? x.plan?.tier),
+          s(x.provider),
+          s(x.status),
+          s(x.interval ?? x.plan?.interval),
+          d(x.currentPeriodEnd),
         ]),
         summary: [
           { label: "Subscriptions", value: String(rows.length) },
@@ -130,14 +164,20 @@ function ReportsPage() {
     }
 
     if (type === "support") {
-      const rows = ((ticketsData ?? []) as Record<string, any>[])
-        .filter((t) => matchStatus(t.status) && inRange(t.createdAt, from, to));
+      const rows = ((ticketsData ?? []) as Record<string, any>[]).filter(
+        (t) => matchStatus(t.status) && inRange(t.createdAt, from, to),
+      );
       return {
         title: "Support Ticket Report",
         columns: ["Created", "Name", "Email", "Category", "Subject", "Status", "Replies"],
         rows: rows.map((t) => [
-          d(t.createdAt), s(t.name), s(t.email), s(t.category), s(t.subject),
-          s(t.status), String(t.replyCount ?? 0),
+          d(t.createdAt),
+          s(t.name),
+          s(t.email),
+          s(t.category),
+          s(t.subject),
+          s(t.status),
+          String(t.replyCount ?? 0),
         ]),
         summary: [
           { label: "Tickets", value: String(rows.length) },
@@ -148,25 +188,34 @@ function ReportsPage() {
     }
 
     if (type === "deletions") {
-      const rows = ((deletionsData ?? []) as Record<string, any>[])
-        .filter((r) => matchStatus(r.status) && inRange(r.requestedAt, from, to));
+      const rows = ((deletionsData ?? []) as Record<string, any>[]).filter(
+        (r) => matchStatus(r.status) && inRange(r.requestedAt, from, to),
+      );
       return {
         title: "Account Deletion Report",
         columns: ["Requested", "Email", "Reason", "Status", "Scheduled purge", "Handled"],
         rows: rows.map((r) => [
-          d(r.requestedAt), s(r.email), s(r.reason), s(r.status),
-          d(r.scheduledPurgeAt), d(r.handledAt),
+          d(r.requestedAt),
+          s(r.email),
+          s(r.reason),
+          s(r.status),
+          d(r.scheduledPurgeAt),
+          d(r.handledAt),
         ]),
         summary: [
           { label: "Requests", value: String(rows.length) },
           { label: "Pending", value: String(rows.filter((r) => s(r.status) === "pending").length) },
-          { label: "Confirmed", value: String(rows.filter((r) => s(r.status) === "confirmed").length) },
+          {
+            label: "Confirmed",
+            value: String(rows.filter((r) => s(r.status) === "confirmed").length),
+          },
         ],
       };
     }
 
-    const rows = ((notifData ?? []) as Record<string, any>[])
-      .filter((n) => inRange(n.createdAt, from, to));
+    const rows = ((notifData ?? []) as Record<string, any>[]).filter((n) =>
+      inRange(n.createdAt, from, to),
+    );
     return {
       title: "Notification Campaign Report",
       columns: ["Sent", "Title", "Audience", "Reach"],
@@ -214,8 +263,10 @@ function ReportsPage() {
     let narrative: string | undefined;
     if (useAi) {
       try {
+        const adminToken = getToken();
+        if (!adminToken) throw new Error("Admin session expired.");
         const res = await summariseReport({
-          data: { reportType: built.title, metrics: built.summary },
+          data: { adminToken, reportType: built.title, metrics: built.summary },
         });
         narrative = res.summary;
       } catch (e) {
@@ -263,11 +314,21 @@ function ReportsPage() {
           <CardContent className="space-y-4">
             <div>
               <Label className="text-xs">Report type</Label>
-              <Select value={type} onValueChange={(v) => { setType(v as ReportKey); setStatus("all"); }}>
-                <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+              <Select
+                value={type}
+                onValueChange={(v) => {
+                  setType(v as ReportKey);
+                  setStatus("all");
+                }}
+              >
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   {REPORTS.map((r) => (
-                    <SelectItem key={r.key} value={r.key}>{r.label}</SelectItem>
+                    <SelectItem key={r.key} value={r.key}>
+                      {r.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -280,11 +341,15 @@ function ReportsPage() {
               <div>
                 <Label className="text-xs">Status</Label>
                 <Select value={status} onValueChange={setStatus}>
-                  <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="mt-1.5">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All statuses</SelectItem>
                     {STATUS_OPTIONS[type].map((s) => (
-                      <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
+                      <SelectItem key={s} value={s} className="capitalize">
+                        {s}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -294,11 +359,21 @@ function ReportsPage() {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-xs">From</Label>
-                <Input type="date" className="mt-1.5" value={from} onChange={(e) => setFrom(e.target.value)} />
+                <Input
+                  type="date"
+                  className="mt-1.5"
+                  value={from}
+                  onChange={(e) => setFrom(e.target.value)}
+                />
               </div>
               <div>
                 <Label className="text-xs">To</Label>
-                <Input type="date" className="mt-1.5" value={to} onChange={(e) => setTo(e.target.value)} />
+                <Input
+                  type="date"
+                  className="mt-1.5"
+                  value={to}
+                  onChange={(e) => setTo(e.target.value)}
+                />
               </div>
             </div>
 
@@ -325,7 +400,12 @@ function ReportsPage() {
                 )}
                 {busy === "pdf" ? "Generating…" : "Generate PDF report"}
               </Button>
-              <Button variant="outline" className="w-full" onClick={exportCsv} disabled={busy !== null}>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={exportCsv}
+                disabled={busy !== null}
+              >
                 <Download className="h-4 w-4 mr-2" /> Export PDF
               </Button>
             </div>
@@ -354,13 +434,18 @@ function ReportsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    {built.columns.map((c) => <TableHead key={c}>{c}</TableHead>)}
+                    {built.columns.map((c) => (
+                      <TableHead key={c}>{c}</TableHead>
+                    ))}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {preview.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={built.columns.length} className="text-center text-sm text-muted-foreground py-8">
+                      <TableCell
+                        colSpan={built.columns.length}
+                        className="text-center text-sm text-muted-foreground py-8"
+                      >
                         No records match these filters.
                       </TableCell>
                     </TableRow>
@@ -368,7 +453,9 @@ function ReportsPage() {
                   {preview.map((r, i) => (
                     <TableRow key={i}>
                       {r.map((cell, j) => (
-                        <TableCell key={j} className="whitespace-nowrap text-sm">{cell || "—"}</TableCell>
+                        <TableCell key={j} className="whitespace-nowrap text-sm">
+                          {cell || "—"}
+                        </TableCell>
                       ))}
                     </TableRow>
                   ))}
