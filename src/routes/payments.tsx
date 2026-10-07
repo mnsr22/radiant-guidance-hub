@@ -313,7 +313,7 @@ function PaymentsPage() {
                     key={m}
                     size="sm"
                     variant={cfg.environment === m ? "default" : "outline"}
-                    onClick={() => set("environment", m)}
+                    onClick={() => setCfg((c) => ({ ...c, environment: m, apiBaseUrl: BASE_URLS[m] }))}
                   >
                     {m === "sandbox" ? "Test" : "Live"}
                   </Button>
