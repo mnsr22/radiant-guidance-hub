@@ -50,6 +50,7 @@ function WithdrawalsPage() {
   const { rows, mutate } = useRemoteList<Row>("/admin/withdrawals", SAMPLE, (r) => ({
     id: String(r.id),
     member: r.user?.name ?? r.member ?? "Member",
+    email: r.user?.email ?? r.email,
     amount: Number(r.amount),
     method: r.method,
     account: r.details?.phone ?? r.details?.account ?? r.account ?? r.accountMasked ?? "",
@@ -72,6 +73,8 @@ function WithdrawalsPage() {
       const action = status === "approved" ? "approve" : status === "paid" ? "mark-paid" : "reject";
       await mutate(() => api(`/admin/withdrawals/${r.id}/${action}`, { method: "POST", body: extra }), r.id, { status, ...extra });
       toast.success(status === "paid" ? "Marked paid — member notified in the app" : "Request rejected — amount returned to member's balance");
+      if (status !== "pending")
+        void notifyMember({ email: r.email, name: r.member }, { kind: "withdrawal", status, amount: r.amount, reference: extra.reference, reason: extra.reason });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Action failed");
     }

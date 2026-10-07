@@ -31,7 +31,8 @@ import {
 } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useUsers } from "@/lib/admin-hooks";
-import { api } from "@/lib/api";
+import { getToken } from "@/lib/api";
+import { sendAdminEmails } from "@/lib/email.functions";
 import { renderEmailHtml } from "@/lib/email-template";
 import type { MockUser } from "@/lib/mock-data";
 import type { GetUsersArgs } from "@/store/admin-api";
@@ -200,19 +201,19 @@ function EmailPage() {
     if (ctaLabel && !ctaUrl) return toast.error("Add a link for the button");
     setSending(true);
     try {
-      const result = await api<{
-        sent: number;
-        failed: { email: string; error: string }[];
-      }>("/admin/email-campaigns", {
-        method: "POST",
-        body: {
-          recipients,
-          subject: subject.trim(),
-          body: body.trim(),
-          template: design,
-          heading: heading.trim() || undefined,
-          ctaLabel: ctaLabel.trim() || undefined,
-          ctaUrl: ctaUrl.trim() || undefined,
+      const result = await sendAdminEmails({
+        data: {
+          adminToken: getToken() ?? "",
+          messages: recipients.map((r) => ({
+            to: r.email,
+            name: r.name || undefined,
+            subject: subject.trim(),
+            body: body.trim(),
+            template: design,
+            heading: heading.trim() || undefined,
+            ctaLabel: ctaLabel.trim() || undefined,
+            ctaUrl: ctaUrl.trim() || undefined,
+          })),
         },
       });
       if (result.sent > 0)
