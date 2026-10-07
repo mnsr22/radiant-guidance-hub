@@ -383,6 +383,8 @@ function PaymentsPage() {
               sent to the phone app. Notification address to register in Pesapal:{" "}
               <code>https://admin.halalconnect.space/api/public/payments/pesapal/ipn</code>
             </p>
+            {saveNotice && <p role="status" className={`rounded-md border p-3 text-sm ${noticeClass(saveNotice)}`}>{saveNotice.text}</p>}
+            {testNotice && <p role="status" className={`rounded-md border p-3 text-sm ${noticeClass(testNotice)}`}>{testNotice.text}</p>}
             <div className="flex gap-2">
               <Button onClick={save} disabled={saving}>
                 <Save className="mr-2 h-4 w-4" />
