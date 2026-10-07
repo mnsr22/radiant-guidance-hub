@@ -117,6 +117,8 @@ export function VerificationQueueTable({
       {selectedUserId && (
         <VerificationDetailModal
           userId={selectedUserId}
+          memberEmail={users.find((u) => u.id === selectedUserId)?.email}
+          memberName={users.find((u) => u.id === selectedUserId)?.username}
           open={!!selectedUserId}
           onOpenChange={(open) => {
             if (!open) {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Download, ExternalLink, FileWarning, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import { verificationApi } from '@/lib/api/verification-api';
 
 type DocMeta = {
@@ -83,6 +84,27 @@ function DocumentCard({ userId, doc }: { userId: string; doc: DocMeta }) {
   const fileName = `${label.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${userId}.${ext}`;
   const isImage = state.status === 'ok' && (state.type.startsWith('image/') || !state.type);
 
+  function openOrDownload(download: boolean) {
+    if (state.status === 'loading') return toast.info('Still loading the image…');
+    if (state.status === 'error') {
+      return toast.error(
+        state.code === 404
+          ? "Your server isn't sharing this document image yet, so there's nothing to download."
+          : state.code === 401 || state.code === 403
+            ? 'Your session has expired — sign in again.'
+            : "Couldn't load this image from the server.",
+      );
+    }
+    const a = document.createElement('a');
+    a.href = state.url;
+    if (download) a.download = fileName;
+    else a.target = '_blank';
+    a.rel = 'noreferrer';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
   return (
     <div className="flex flex-col overflow-hidden rounded-lg border bg-card">
       <div className="flex items-center justify-between border-b px-3 py-2">
@@ -111,20 +133,11 @@ function DocumentCard({ userId, doc }: { userId: string; doc: DocMeta }) {
           ))}
       </div>
       <div className="flex gap-2 p-2">
-        <Button asChild size="sm" variant="outline" className="flex-1" disabled={state.status !== 'ok'}>
-          <a
-            href={state.status === 'ok' ? state.url : undefined}
-            target="_blank"
-            rel="noreferrer"
-            aria-disabled={state.status !== 'ok'}
-          >
-            <ExternalLink className="mr-1 h-4 w-4" /> Open
-          </a>
+        <Button size="sm" variant="outline" className="flex-1" onClick={() => openOrDownload(false)}>
+          <ExternalLink className="mr-1 h-4 w-4" /> Open
         </Button>
-        <Button asChild size="sm" className="flex-1" disabled={state.status !== 'ok'}>
-          <a href={state.status === 'ok' ? state.url : undefined} download={fileName} aria-disabled={state.status !== 'ok'}>
-            <Download className="mr-1 h-4 w-4" /> Download
-          </a>
+        <Button size="sm" className="flex-1" onClick={() => openOrDownload(true)}>
+          <Download className="mr-1 h-4 w-4" /> Download
         </Button>
       </div>
     </div>

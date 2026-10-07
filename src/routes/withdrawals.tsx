@@ -1,3 +1,4 @@
+import { notifyMember } from "@/lib/notify";
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Banknote, CheckCircle2, Clock, Copy, XCircle } from "lucide-react";
@@ -31,7 +32,7 @@ export const Route = createFileRoute("/withdrawals")({
 });
 
 type Status = "pending" | "approved" | "paid" | "rejected";
-type Row = { id: string; member: string; amount: number; method: string; account: string; accountName?: string; requested: string; status: Status; reference?: string; reason?: string };
+type Row = { id: string; member: string; email?: string; amount: number; method: string; account: string; accountName?: string; requested: string; status: Status; reference?: string; reason?: string };
 
 const SAMPLE: Row[] = [
   { id: "w1", member: "Aisha N.", amount: 64000, method: "MTN Mobile Money", account: "+256 772 456 812", accountName: "Aisha Nakato", requested: "Today", status: "pending" },
@@ -50,6 +51,7 @@ function WithdrawalsPage() {
   const { rows, mutate } = useRemoteList<Row>("/admin/withdrawals", SAMPLE, (r) => ({
     id: String(r.id),
     member: r.user?.name ?? r.member ?? "Member",
+    email: r.user?.email ?? r.email,
     amount: Number(r.amount),
     method: r.method,
     account: r.details?.phone ?? r.details?.account ?? r.account ?? r.accountMasked ?? "",
@@ -72,6 +74,8 @@ function WithdrawalsPage() {
       const action = status === "approved" ? "approve" : status === "paid" ? "mark-paid" : "reject";
       await mutate(() => api(`/admin/withdrawals/${r.id}/${action}`, { method: "POST", body: extra }), r.id, { status, ...extra });
       toast.success(status === "paid" ? "Marked paid — member notified in the app" : "Request rejected — amount returned to member's balance");
+      if (status !== "pending")
+        void notifyMember({ email: r.email, name: r.member }, { kind: "withdrawal", status, amount: r.amount, reference: extra.reference, reason: extra.reason });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Action failed");
     }

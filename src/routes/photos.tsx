@@ -1,3 +1,4 @@
+import { notifyMember } from "@/lib/notify";
 import { useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { useRemoteList } from "@/lib/remote";
@@ -180,6 +181,9 @@ function PhotoModerationPage() {
         { status, reason },
       );
       toast.success(status === "approved" ? "Photo approved" : "Photo rejected — member notified");
+      const p = photos.find((x) => x.id === id);
+      if (p && (status === "approved" || status === "rejected"))
+        void notifyMember({ email: p.email, name: p.member }, { kind: "photo", status, reason });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Action failed");
     }
