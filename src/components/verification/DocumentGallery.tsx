@@ -89,7 +89,7 @@ function DocumentCard({ userId, doc }: { userId: string; doc: DocMeta }) {
     if (state.status === 'error') {
       return toast.error(
         state.code === 404
-          ? "Your server isn't sharing this document image yet, so there's nothing to download."
+          ? "This submission references an image file that isn't on the server. Ask the member to resubmit this document."
           : state.code === 401 || state.code === 403
             ? 'Your session has expired — sign in again.'
             : "Couldn't load this image from the server.",
@@ -117,7 +117,7 @@ function DocumentCard({ userId, doc }: { userId: string; doc: DocMeta }) {
           <div className="flex flex-col items-center gap-1 px-4 text-center text-xs text-muted-foreground">
             <FileWarning className="h-6 w-6" />
             {state.code === 404
-              ? "Your server doesn't share this image yet."
+              ? "The image file is missing from the server. Ask the member to resubmit it."
               : state.code === 401 || state.code === 403
                 ? 'Not allowed — sign in again.'
                 : "Couldn't load the image."}

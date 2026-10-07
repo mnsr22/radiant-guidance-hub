@@ -40,7 +40,12 @@ export async function notifyMember(to: { email?: string; name?: string }, e: Eve
   try {
     const msg = build(e);
     const r = await sendAdminEmails({
-      data: { adminToken: token, messages: [{ to: to.email, name: to.name, template: "branded", ...msg }] },
+      data: {
+        adminToken: token,
+        recipients: [{ email: to.email, name: to.name }],
+        template: "branded",
+        ...msg,
+      },
     });
     if (r.sent) toast.success(`Email sent to ${to.email}`);
     else toast.warning(`Couldn't email ${to.email}: ${r.failed[0]?.error ?? "unknown error"}`);

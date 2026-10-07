@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { CheckCircle2, KeyRound, PlugZap, Save } from "lucide-react";
+import { CheckCircle2, Copy, KeyRound, PlugZap, Save } from "lucide-react";
 import { toast } from "sonner";
 import { AdminLayout, PageHeader } from "@/components/admin/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { api } from "@/lib/api";
+import { api, BASE_URL } from "@/lib/api";
 
 export const Route = createFileRoute("/payments")({
   head: () => ({
@@ -40,6 +40,8 @@ type Config = {
   currency: string;
   apiBaseUrl: string;
   ipnId: string;
+  ipnListenerUrl: string;
+  registeredIpnUrl: string | null;
   callbackUrl: string;
   hasCredentials: boolean;
 };
@@ -51,6 +53,8 @@ const DEFAULTS: Config = {
   currency: "UGX",
   apiBaseUrl: "https://cybqa.pesapal.com/pesapalv3",
   ipnId: "",
+  ipnListenerUrl: `${BASE_URL}/public/payments/pesapal/ipn`,
+  registeredIpnUrl: null,
   callbackUrl: "https://halalconnect.space/payment-return",
   hasCredentials: false,
 };
@@ -87,6 +91,11 @@ function normalise(raw: unknown): Partial<Config> {
   if (typeof base === "string") out.apiBaseUrl = base;
   const ipn = d.ipnId ?? d.ipnID ?? d.ipn_id ?? d.notificationId;
   if (ipn !== undefined && ipn !== null) out.ipnId = String(ipn);
+  const ipnUrl = d.ipnListenerUrl ?? d.ipnUrl;
+  if (typeof ipnUrl === "string") out.ipnListenerUrl = ipnUrl;
+  if (typeof d.registeredIpnUrl === "string" || d.registeredIpnUrl === null) {
+    out.registeredIpnUrl = d.registeredIpnUrl;
+  }
   const cb = d.callbackUrl ?? d.callbackURL ?? d.callback_url;
   if (typeof cb === "string") out.callbackUrl = cb;
   const has =
@@ -106,6 +115,7 @@ function PaymentsPage() {
   const [secret, setSecret] = useState("");
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [registeringIpn, setRegisteringIpn] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveNotice, setSaveNotice] = useState<Notice>(null);
   const [testNotice, setTestNotice] = useState<Notice>(null);
@@ -245,6 +255,53 @@ function PaymentsPage() {
     }
   }
 
+  async function copyIpnUrl() {
+    try {
+      await navigator.clipboard.writeText(cfg.ipnListenerUrl);
+      toast.success("Pesapal IPN listener URL copied");
+    } catch {
+      toast.error("Could not copy the IPN URL. Select and copy it manually.");
+    }
+  }
+
+  async function registerIpn() {
+    if (!cfg.hasCredentials) {
+      setTestNotice({
+        kind: "error",
+        text: "Save valid Pesapal credentials before registering the listener.",
+      });
+      return;
+    }
+    setRegisteringIpn(true);
+    setTestNotice(null);
+    try {
+      const result = await api<{ ipnId: string; ipnListenerUrl: string }>(
+        "/admin/payments/register-ipn",
+        { method: "POST" },
+      );
+      const saved = await load();
+      if (!saved || saved.ipnId !== result.ipnId) {
+        setTestNotice({
+          kind: "warn",
+          text: `Pesapal returned an IPN ID, but the server couldn't confirm it saved. Refresh and verify the ID before using payments.`,
+        });
+        return;
+      }
+      setTestNotice({
+        kind: "ok",
+        text: `Listener registered with Pesapal and saved. IPN ID: ${result.ipnId}`,
+      });
+      toast.success("Pesapal listener registered");
+    } catch (e) {
+      setTestNotice({
+        kind: "error",
+        text: e instanceof Error ? e.message : "Could not register the IPN listener",
+      });
+    } finally {
+      setRegisteringIpn(false);
+    }
+  }
+
   const noticeClass = (n: NonNullable<Notice>) =>
     n.kind === "ok"
       ? "border-primary/30 bg-primary/5 text-foreground"
@@ -256,7 +313,7 @@ function PaymentsPage() {
     <AdminLayout>
       <PageHeader
         title="Payment Gateway"
-        description="Pesapal settings used for subscriptions and gift purchases. Changes apply instantly in the app."
+        description="Pesapal settings used for subscriptions and gift purchases. Changes take effect after you save."
         actions={
           <Badge
             className={
@@ -305,6 +362,10 @@ function PaymentsPage() {
               <Label>Accept payments</Label>
               <Switch checked={cfg.enabled} onCheckedChange={(v) => set("enabled", v)} />
             </div>
+            <p className="text-xs text-muted-foreground">
+              The switch changes a draft setting. Click Save settings to persist it; the saved state
+              remains active across reloads until you turn it off and save again.
+            </p>
             <div className="space-y-2">
               <Label>Mode</Label>
               <div className="flex gap-2">
@@ -313,7 +374,9 @@ function PaymentsPage() {
                     key={m}
                     size="sm"
                     variant={cfg.environment === m ? "default" : "outline"}
-                    onClick={() => setCfg((c) => ({ ...c, environment: m, apiBaseUrl: BASE_URLS[m] }))}
+                    onClick={() =>
+                      setCfg((c) => ({ ...c, environment: m, apiBaseUrl: BASE_URLS[m] }))
+                    }
                   >
                     {m === "sandbox" ? "Test" : "Live"}
                   </Button>
@@ -333,12 +396,61 @@ function PaymentsPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>IPN ID (from Pesapal)</Label>
+              <Label>IPN ID (from Pesapal registration)</Label>
               <Input
                 value={cfg.ipnId}
                 onChange={(e) => set("ipnId", e.target.value)}
                 placeholder="Registered notification ID"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="pesapal-ipn-listener">IPN listener URL to register in Pesapal</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="pesapal-ipn-listener"
+                  value={cfg.ipnListenerUrl}
+                  readOnly
+                  aria-label="Pesapal IPN listener URL"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={copyIpnUrl}
+                  aria-label="Copy IPN listener URL"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                This is your app's callback. PesaPal's invoicing URL is a PesaPal-owned endpoint,
+                not your app's listener. Register this URL through the button; the returned IPN ID
+                is saved automatically.
+              </p>
+              {cfg.ipnId && cfg.registeredIpnUrl !== cfg.ipnListenerUrl && (
+                <p className="text-xs text-amber-700">
+                  The saved IPN ID was not registered for this app URL. Replace it by registering
+                  this listener.
+                </p>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={registerIpn}
+                disabled={
+                  registeringIpn ||
+                  saving ||
+                  !cfg.hasCredentials ||
+                  (Boolean(cfg.ipnId) && cfg.registeredIpnUrl === cfg.ipnListenerUrl)
+                }
+              >
+                {registeringIpn
+                  ? "Registering with Pesapal…"
+                  : cfg.ipnId
+                    ? cfg.registeredIpnUrl === cfg.ipnListenerUrl
+                      ? "Listener registered"
+                      : "Replace with this app's listener"
+                    : "Register listener with Pesapal"}
+              </Button>
             </div>
             <div className="space-y-2">
               <Label>Return page after payment</Label>
@@ -380,11 +492,24 @@ function PaymentsPage() {
             </div>
             <p className="text-xs text-muted-foreground">
               Keys go straight to your server, are stored encrypted, and are never shown again or
-              sent to the phone app. Notification address to register in Pesapal:{" "}
-              <code>https://admin.halalconnect.space/api/public/payments/pesapal/ipn</code>
+              sent to the phone app.
             </p>
-            {saveNotice && <p role="status" className={`rounded-md border p-3 text-sm ${noticeClass(saveNotice)}`}>{saveNotice.text}</p>}
-            {testNotice && <p role="status" className={`rounded-md border p-3 text-sm ${noticeClass(testNotice)}`}>{testNotice.text}</p>}
+            {saveNotice && (
+              <p
+                role="status"
+                className={`rounded-md border p-3 text-sm ${noticeClass(saveNotice)}`}
+              >
+                {saveNotice.text}
+              </p>
+            )}
+            {testNotice && (
+              <p
+                role="status"
+                className={`rounded-md border p-3 text-sm ${noticeClass(testNotice)}`}
+              >
+                {testNotice.text}
+              </p>
+            )}
             <div className="flex gap-2">
               <Button onClick={save} disabled={saving}>
                 <Save className="mr-2 h-4 w-4" />

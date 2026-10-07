@@ -204,16 +204,16 @@ function EmailPage() {
       const result = await sendAdminEmails({
         data: {
           adminToken: getToken() ?? "",
-          messages: recipients.map((r) => ({
-            to: r.email,
+          recipients: recipients.map((r) => ({
+            email: r.email,
             name: r.name || undefined,
-            subject: subject.trim(),
-            body: body.trim(),
-            template: design,
-            heading: heading.trim() || undefined,
-            ctaLabel: ctaLabel.trim() || undefined,
-            ctaUrl: ctaUrl.trim() || undefined,
           })),
+          subject: subject.trim(),
+          body: body.trim(),
+          template: design,
+          heading: heading.trim() || undefined,
+          ctaLabel: ctaLabel.trim() || undefined,
+          ctaUrl: ctaUrl.trim() || undefined,
         },
       });
       if (result.sent > 0)
