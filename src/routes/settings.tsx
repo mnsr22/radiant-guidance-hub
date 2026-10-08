@@ -11,8 +11,17 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useSettings, useSettingsMutation, useMe, useUpdateMe } from "@/lib/admin-hooks";
+import { api } from "@/lib/api";
+import { Plus, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/settings")({ component: SettingsPage });
+
+type TermsDocument = {
+  title: string;
+  intro: string;
+  version: string;
+  sections: { title: string; body: string }[];
+};
 
 const initialFeatures = [
   { id: "wali", label: "Wali / Guardian involvement", desc: "Allow users to invite a guardian to oversee conversations.", on: true },
@@ -47,9 +56,22 @@ function SettingsPage() {
   // Account/profile form for the logged-in admin.
   const [profile, setProfile] = useState({ name: "", email: "", password: "" });
   const [savingProfile, setSavingProfile] = useState(false);
+  const [terms, setTerms] = useState<TermsDocument | null>(null);
+  const [savingTerms, setSavingTerms] = useState(false);
+  const [termsLoadError, setTermsLoadError] = useState("");
   useEffect(() => {
     if (me) setProfile({ name: me.name ?? "", email: me.email ?? "", password: "" });
   }, [me]);
+  useEffect(() => {
+    api<TermsDocument>("/legal/terms")
+      .then((document) => {
+        setTerms(document);
+        setTermsLoadError("");
+      })
+      .catch((error) => {
+        setTermsLoadError(error instanceof Error ? error.message : "Terms could not be loaded");
+      });
+  }, []);
 
   function saveProfile() {
     if (!profile.name.trim()) return toast.error("Name can't be empty");
@@ -126,6 +148,25 @@ function SettingsPage() {
     );
   }
 
+  function saveTerms() {
+    if (!terms) return;
+    if (!terms.title.trim() || !terms.intro.trim() || terms.sections.length === 0 ||
+      terms.sections.some((section) => !section.title.trim() || !section.body.trim())) {
+      toast.error("Complete the title, introduction, and every terms section before saving.");
+      return;
+    }
+    setSavingTerms(true);
+    api<TermsDocument>("/legal/terms", {
+      method: "PATCH",
+      body: { title: terms.title, intro: terms.intro, sections: terms.sections },
+    }).then((saved) => {
+      setTerms(saved);
+      toast.success("Terms & Conditions updated");
+    }).catch((error) => {
+      toast.error(error instanceof Error ? error.message : "Terms could not be saved");
+    }).finally(() => setSavingTerms(false));
+  }
+
   return (
     <AdminLayout>
       <PageHeader title="Profile & Settings" description="Manage your admin account and configure platform-wide behavior." />
@@ -158,6 +199,80 @@ function SettingsPage() {
             {savingProfile ? "Saving…" : "Update profile"}
           </Button>
         </div>
+      </Card>
+
+      <Card className="p-5 shadow-elegant mb-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div>
+            <h3 className="font-semibold">Terms & Conditions</h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              Signup uses this published version. Saving creates a new version and new members must accept it.
+            </p>
+          </div>
+          {terms && <Badge variant="secondary">Version {terms.version}</Badge>}
+        </div>
+        {termsLoadError ? (
+          <p role="alert" className="text-sm text-destructive">{termsLoadError}</p>
+        ) : !terms ? (
+          <p className="text-sm text-muted-foreground">Loading the current terms…</p>
+        ) : (
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="terms-title">Document title</Label>
+              <Input id="terms-title" value={terms.title}
+                onChange={(e) => setTerms({ ...terms, title: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="terms-intro">Introduction</Label>
+              <Textarea id="terms-intro" value={terms.intro}
+                onChange={(e) => setTerms({ ...terms, intro: e.target.value })} />
+            </div>
+            {terms.sections.map((section, index) => (
+              <div key={index} className="grid gap-3 rounded-lg border p-3 md:grid-cols-[1fr_auto]">
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor={`terms-section-title-${index}`}>Section title</Label>
+                    <Input id={`terms-section-title-${index}`} value={section.title}
+                      onChange={(e) => setTerms({
+                        ...terms,
+                        sections: terms.sections.map((item, i) =>
+                          i === index ? { ...item, title: e.target.value } : item),
+                      })} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor={`terms-section-body-${index}`}>Section text</Label>
+                    <Textarea id={`terms-section-body-${index}`} className="min-h-24" value={section.body}
+                      onChange={(e) => setTerms({
+                        ...terms,
+                        sections: terms.sections.map((item, i) =>
+                          i === index ? { ...item, body: e.target.value } : item),
+                      })} />
+                  </div>
+                </div>
+                <Button type="button" variant="ghost" size="icon" aria-label={`Remove section ${index + 1}`}
+                  disabled={terms.sections.length <= 1}
+                  onClick={() => setTerms({
+                    ...terms,
+                    sections: terms.sections.filter((_, i) => i !== index),
+                  })}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            <div className="flex flex-wrap justify-between gap-3">
+              <Button type="button" variant="outline" onClick={() => setTerms({
+                ...terms,
+                sections: [...terms.sections, { title: "", body: "" }],
+              })}>
+                <Plus className="h-4 w-4 mr-2" /> Add section
+              </Button>
+              <Button disabled={savingTerms} onClick={saveTerms}
+                className="bg-gradient-primary text-primary-foreground border-0 shadow-elegant">
+                {savingTerms ? "Saving…" : "Publish terms"}
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">

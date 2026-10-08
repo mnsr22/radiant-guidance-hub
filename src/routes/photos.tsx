@@ -68,6 +68,12 @@ type PhotoRow = {
   submitted: string;
   status: PhotoStatus;
 };
+type PhotoGroup = {
+  userId: string;
+  member: string;
+  email: string;
+  photos: PhotoRow[];
+};
 
 const FLAG_POOL = [
   ["Face not visible"],
@@ -125,7 +131,6 @@ const statusTone: Record<string, string> = {
 function PhotoModerationPage() {
   const {
     rows: photos,
-    mutate,
     sample,
     reload,
   } = useRemoteList<PhotoRow>("/admin/photos", initialPhotos, (r) => ({
@@ -147,8 +152,9 @@ function PhotoModerationPage() {
     requested: r.createdAt ? new Date(r.createdAt).toLocaleDateString() : "",
     status: r.status === "granted" ? "approved" : r.status === "denied" ? "declined" : r.status,
   }));
-  const [viewing, setViewing] = useState<PhotoRow | null>(null);
-  const [rejecting, setRejecting] = useState<PhotoRow | null>(null);
+  const [reviewingGroup, setReviewingGroup] = useState<PhotoGroup | null>(null);
+  const [rejectingGroup, setRejectingGroup] = useState<PhotoGroup | null>(null);
+  const [selectedPhotoIds, setSelectedPhotoIds] = useState<string[]>([]);
   const [rejectReason, setRejectReason] = useState("");
   const [revoking, setRevoking] = useState<AccessRow | null>(null);
   const [search, setSearch] = useState("");
@@ -163,6 +169,24 @@ function PhotoModerationPage() {
     });
   }, [photos, search, tab]);
 
+  const groups = useMemo(() => {
+    const byUser = new Map<string, PhotoGroup>();
+    for (const photo of filtered) {
+      let group = byUser.get(photo.userId);
+      if (!group) {
+        group = {
+          userId: photo.userId,
+          member: photo.member,
+          email: photo.email,
+          photos: [],
+        };
+        byUser.set(photo.userId, group);
+      }
+      group.photos.push(photo);
+    }
+    return [...byUser.values()];
+  }, [filtered]);
+
   const counts = useMemo(
     () => ({
       pending: photos.filter((p) => p.status === "pending").length,
@@ -173,17 +197,38 @@ function PhotoModerationPage() {
     [photos, req.rows],
   );
 
-  async function decide(id: string, status: PhotoStatus, reason?: string) {
+  function openReview(group: PhotoGroup) {
+    setReviewingGroup(group);
+    setSelectedPhotoIds(group.photos.map((photo) => photo.id));
+  }
+
+  async function decideSelected(
+    group: PhotoGroup,
+    status: "approved" | "rejected",
+    reason?: string,
+  ) {
+    const ids = selectedPhotoIds.filter((id) =>
+      group.photos.some((photo) => photo.id === id),
+    );
+    if (ids.length === 0) {
+      toast.error("Select at least one photo to review");
+      return;
+    }
     try {
-      await mutate(
-        () => api(`/admin/photos/${id}`, { method: "PATCH", body: { status, reason } }),
-        id,
-        { status, reason },
+      await api("/admin/photos/bulk-review", {
+        method: "POST",
+        body: { photoIds: ids, status, reason },
+      });
+      toast.success(
+        `${ids.length} photo${ids.length === 1 ? "" : "s"} ${status}`,
       );
-      toast.success(status === "approved" ? "Photo approved" : "Photo rejected — member notified");
-      const p = photos.find((x) => x.id === id);
-      if (p && (status === "approved" || status === "rejected"))
-        void notifyMember({ email: p.email, name: p.member }, { kind: "photo", status, reason });
+      void notifyMember(
+        { email: group.email, name: group.member },
+        { kind: "photo", status, reason, count: ids.length },
+      );
+      setReviewingGroup(null);
+      setRejectingGroup(null);
+      await reload();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Action failed");
     }
@@ -281,7 +326,7 @@ function PhotoModerationPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Member</TableHead>
-                      <TableHead>Type</TableHead>
+                      <TableHead>Photos</TableHead>
                       <TableHead>Flags</TableHead>
                       <TableHead>Submitted</TableHead>
                       <TableHead>Status</TableHead>
@@ -289,21 +334,30 @@ function PhotoModerationPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filtered.map((p) => (
-                      <TableRow key={p.id}>
+                    {groups.map((group) => {
+                      const groupFlags = [...new Set(group.photos.flatMap((p) => p.flags))];
+                      const statuses = [...new Set(group.photos.map((p) => p.status))];
+                      return (
+                      <TableRow
+                        key={group.userId}
+                        className="cursor-pointer"
+                        onClick={() => openReview(group)}
+                      >
                         <TableCell>
-                          <div className="font-medium">{p.member}</div>
-                          <div className="text-xs text-muted-foreground">{p.email}</div>
+                          <div className="font-medium">{group.member}</div>
+                          <div className="text-xs text-muted-foreground">{group.email}</div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">{p.kind}</Badge>
+                          <Badge variant="outline">
+                            {group.photos.length} photo{group.photos.length === 1 ? "" : "s"}
+                          </Badge>
                         </TableCell>
                         <TableCell className="max-w-[220px]">
-                          {p.flags.length === 0 ? (
+                          {groupFlags.length === 0 ? (
                             <span className="text-xs text-muted-foreground">None</span>
                           ) : (
                             <div className="flex flex-wrap gap-1">
-                              {p.flags.map((f) => (
+                              {groupFlags.map((f) => (
                                 <Badge
                                   key={f}
                                   className="bg-amber-500/15 text-amber-600 dark:text-amber-400"
@@ -315,45 +369,33 @@ function PhotoModerationPage() {
                           )}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
-                          {p.submitted}
+                          {group.photos[0]?.submitted}
                         </TableCell>
                         <TableCell>
-                          <Badge className={statusTone[p.status]}>{p.status}</Badge>
+                          {statuses.map((status) => (
+                            <Badge key={status} className={`mr-1 ${statusTone[status]}`}>
+                              {status}
+                            </Badge>
+                          ))}
                         </TableCell>
                         <TableCell className="text-right whitespace-nowrap">
                           <Button
                             size="sm"
-                            variant="ghost"
-                            onClick={() => setViewing(p)}
-                            aria-label="View photo"
+                            variant="outline"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              openReview(group);
+                            }}
+                            aria-label="Review member photos"
                           >
                             <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            aria-label="Approve"
-                            disabled={p.status === "approved"}
-                            onClick={() => decide(p.id, "approved")}
-                          >
-                            <Check className="h-4 w-4 text-emerald-600" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            aria-label="Reject"
-                            disabled={p.status === "rejected"}
-                            onClick={() => {
-                              setRejectReason("");
-                              setRejecting(p);
-                            }}
-                          >
-                            <X className="h-4 w-4 text-destructive" />
+                            <span className="ml-2">Review</span>
                           </Button>
                         </TableCell>
                       </TableRow>
-                    ))}
-                    {filtered.length === 0 && (
+                      );
+                    })}
+                    {groups.length === 0 && (
                       <TableRow>
                         <TableCell
                           colSpan={6}
@@ -419,54 +461,106 @@ function PhotoModerationPage() {
           </Table>
         </CardContent>
       </Card>
-      <Dialog open={!!viewing} onOpenChange={(o) => !o && setViewing(null)}>
-        <DialogContent className="sm:max-w-lg">
-          {viewing && (
+      <Dialog
+        open={!!reviewingGroup}
+        onOpenChange={(open) => {
+          if (!open) setReviewingGroup(null);
+        }}
+      >
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+          {reviewingGroup && (
             <>
               <DialogHeader>
                 <DialogTitle>
-                  {viewing.member} · {viewing.kind} photo
+                  {reviewingGroup.member} · {reviewingGroup.photos.length} photo
+                  {reviewingGroup.photos.length === 1 ? "" : "s"}
                 </DialogTitle>
                 <DialogDescription>
-                  {viewing.email} · submitted {viewing.submitted}
+                  {reviewingGroup.email}. Choose which photos to review.
                 </DialogDescription>
               </DialogHeader>
-              <div className="flex aspect-square items-center justify-center overflow-hidden rounded-lg border bg-muted">
-                {viewing.url ? (
-                  <img
-                    src={viewing.url}
-                    alt={`Photo by ${viewing.member}`}
-                    className="h-full w-full object-contain"
-                  />
-                ) : (
-                  <span className="text-sm text-muted-foreground">
-                    Image loads here from your server's secure link
-                  </span>
-                )}
+              <div className="flex items-center justify-between text-sm">
+                <span>{selectedPhotoIds.length} selected</span>
+                <Button
+                  variant="link"
+                  onClick={() =>
+                    setSelectedPhotoIds(
+                      selectedPhotoIds.length === reviewingGroup.photos.length
+                        ? []
+                        : reviewingGroup.photos.map((photo) => photo.id),
+                    )
+                  }
+                >
+                  {selectedPhotoIds.length === reviewingGroup.photos.length
+                    ? "Select none"
+                    : "Select all"}
+                </Button>
               </div>
-              {viewing.flags.length > 0 && (
-                <p className="text-sm text-amber-600">Flags: {viewing.flags.join(", ")}</p>
-              )}
+              <div className="grid gap-3 sm:grid-cols-2">
+                {reviewingGroup.photos.map((photo) => {
+                  const selected = selectedPhotoIds.includes(photo.id);
+                  return (
+                    <button
+                      key={photo.id}
+                      type="button"
+                      className={`overflow-hidden rounded-lg border text-left ${selected ? "border-primary ring-2 ring-primary/30" : "border-border"}`}
+                      onClick={() =>
+                        setSelectedPhotoIds((ids) =>
+                          selected
+                            ? ids.filter((id) => id !== photo.id)
+                            : [...ids, photo.id],
+                        )
+                      }
+                    >
+                      <div className="flex aspect-square items-center justify-center bg-muted">
+                        {photo.url ? (
+                          <img
+                            src={photo.url}
+                            alt={`${photo.kind} photo by ${photo.member}`}
+                            className="h-full w-full object-contain"
+                          />
+                        ) : (
+                          <span className="text-sm text-muted-foreground">
+                            Secure photo preview unavailable
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between p-3">
+                        <span className="text-sm">
+                          {photo.kind} · {photo.status}
+                        </span>
+                        <span
+                          className={`flex h-5 w-5 items-center justify-center rounded border ${selected ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground"}`}
+                          aria-label={selected ? "Selected" : "Not selected"}
+                        >
+                          {selected && <Check className="h-3 w-3" />}
+                        </span>
+                      </div>
+                      {photo.flags.length > 0 && (
+                        <p className="px-3 pb-3 text-xs text-amber-600">
+                          Flags: {photo.flags.join(", ")}
+                        </p>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
               <DialogFooter className="gap-2">
                 <Button
                   variant="outline"
-                  disabled={false}
+                  disabled={selectedPhotoIds.length === 0}
                   onClick={() => {
                     setRejectReason("");
-                    setRejecting(viewing);
-                    setViewing(null);
+                    setRejectingGroup(reviewingGroup);
                   }}
                 >
-                  Reject
+                  Reject selected
                 </Button>
                 <Button
-                  disabled={false}
-                  onClick={() => {
-                    decide(viewing.id, "approved");
-                    setViewing(null);
-                  }}
+                  disabled={selectedPhotoIds.length === 0}
+                  onClick={() => void decideSelected(reviewingGroup, "approved")}
                 >
-                  Approve
+                  Approve selected
                 </Button>
               </DialogFooter>
             </>
@@ -474,11 +568,18 @@ function PhotoModerationPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!rejecting} onOpenChange={(o) => !o && setRejecting(null)}>
+      <Dialog
+        open={!!rejectingGroup}
+        onOpenChange={(open) => !open && setRejectingGroup(null)}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Reject photo</DialogTitle>
-            <DialogDescription>The member sees this reason in the app.</DialogDescription>
+            <DialogTitle>Reject selected photos</DialogTitle>
+            <DialogDescription>
+              {selectedPhotoIds.length} selected photo
+              {selectedPhotoIds.length === 1 ? "" : "s"} from {rejectingGroup?.member} will be
+              rejected together, with one email and one notification.
+            </DialogDescription>
           </DialogHeader>
           <div className="flex flex-wrap gap-2">
             {[
@@ -503,18 +604,18 @@ function PhotoModerationPage() {
             placeholder="Reason"
           />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRejecting(null)}>
+            <Button variant="outline" onClick={() => setRejectingGroup(null)}>
               Cancel
             </Button>
             <Button
               variant="destructive"
-              disabled={!rejectReason.trim()}
-              onClick={() => {
-                if (rejecting) decide(rejecting.id, "rejected", rejectReason.trim());
-                setRejecting(null);
-              }}
+              disabled={!rejectReason.trim() || !rejectingGroup}
+              onClick={() =>
+                rejectingGroup &&
+                void decideSelected(rejectingGroup, "rejected", rejectReason.trim())
+              }
             >
-              Reject photo
+              Reject selected & notify
             </Button>
           </DialogFooter>
         </DialogContent>

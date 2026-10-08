@@ -5,15 +5,26 @@ import { getToken } from "@/lib/api";
 import { sendAdminEmails } from "@/lib/email.functions";
 
 type Event =
-  | { kind: "photo"; status: "approved" | "rejected"; reason?: string }
+  | { kind: "photo"; status: "approved" | "rejected"; reason?: string; count?: number }
   | { kind: "withdrawal"; status: "approved" | "paid" | "rejected"; amount: number; reference?: string; reason?: string };
 
 function build(e: Event): { subject: string; heading: string; body: string } {
   const why = (r?: string) => (r ? `\n\nReason: ${r}` : "");
-  if (e.kind === "photo")
+  if (e.kind === "photo") {
+    const count = e.count ?? 1;
+    const photos = `${count} photo${count === 1 ? "" : "s"}`;
     return e.status === "approved"
-      ? { subject: "Your photo is approved", heading: "Photo approved", body: "Hi {{name}},\n\nYour photo has been approved and is now visible on your profile." }
-      : { subject: "Your photo wasn't approved", heading: "Photo not approved", body: `Hi {{name}},\n\nOne of your photos didn't meet our community guidelines and has been removed.${why(e.reason)}\n\nYou can upload a different photo from the app.` };
+      ? {
+          subject: count === 1 ? "Your photo is approved" : "Your photos are approved",
+          heading: count === 1 ? "Photo approved" : "Photos approved",
+          body: `Hi {{name}},\n\n${count === 1 ? "Your photo has" : `${photos} have`} been approved and ${count === 1 ? "is" : "are"} now visible on your profile.`,
+        }
+      : {
+          subject: count === 1 ? "Your photo wasn't approved" : "Your photos weren't approved",
+          heading: count === 1 ? "Photo not approved" : "Photos not approved",
+          body: `Hi {{name}},\n\n${count === 1 ? "One of your photos didn't" : `${photos} didn't`} meet our community guidelines and ${count === 1 ? "has" : "have"} been rejected.${why(e.reason)}\n\nYou can upload a different photo from the app.`,
+        };
+  }
   const amt = `${e.amount.toLocaleString()} UGX`;
   if (e.status === "paid")
     return { subject: "Your withdrawal has been paid", heading: "Payment sent", body: `Hi {{name}},\n\nWe've sent your withdrawal of ${amt}.${e.reference ? `\n\nTransfer reference: ${e.reference}` : ""}\n\nIt should reach you shortly.` };
