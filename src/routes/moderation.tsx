@@ -26,7 +26,7 @@ function Moderation() {
   const { data: stats } = useStats();
   const reportMut = useReportMutations();
   const [reviewing, setReviewing] = useState<Report | null>(null);
-  const [confirm, setConfirm] = useState<{ report: Report; action: "warn" | "ban" } | null>(null);
+  const [confirm, setConfirm] = useState<{ report: Report; action: "review" | "ban" } | null>(null);
 
   const counts = {
     pending: reports.filter((r) => r.status === "pending").length,
@@ -43,7 +43,7 @@ function Moderation() {
     toast.success(
       action === "ban"
         ? `${report.reportedUser} has been banned`
-        : `Warning sent to ${report.reportedUser}`,
+        : `Report marked reviewed`,
     );
     setConfirm(null);
     setReviewing(null);
@@ -85,9 +85,9 @@ function Moderation() {
                   size="sm"
                   variant="outline"
                   className="text-warning border-warning/30 hover:bg-warning/10"
-                  onClick={() => setConfirm({ report: r, action: "warn" })}
+                  onClick={() => setConfirm({ report: r, action: "review" })}
                 >
-                  Warn
+                  Mark reviewed
                 </Button>
                 <Button
                   size="sm"
@@ -125,9 +125,8 @@ function Moderation() {
                 </div>
                 <div className="rounded-lg border p-3 bg-muted/30">
                   <div className="text-xs text-muted-foreground mb-1">Reporter notes</div>
-                  <p className="text-sm">
-                    User submitted a {reviewing.category.toLowerCase()} report. Review chat history before
-                    deciding on action.
+                  <p className="text-sm whitespace-pre-wrap">
+                    {reviewing.details || reviewing.reason || "No additional details were provided."}
                   </p>
                 </div>
               </div>
@@ -138,9 +137,9 @@ function Moderation() {
                 <Button
                   variant="outline"
                   className="text-warning border-warning/30 hover:bg-warning/10"
-                  onClick={() => setConfirm({ report: reviewing, action: "warn" })}
+                  onClick={() => setConfirm({ report: reviewing, action: "review" })}
                 >
-                  Warn
+                  Mark reviewed
                 </Button>
                 <Button
                   className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
@@ -163,12 +162,12 @@ function Moderation() {
                 <AlertDialogTitle>
                   {confirm.action === "ban"
                     ? `Ban ${confirm.report.reportedUser}?`
-                    : `Send warning to ${confirm.report.reportedUser}?`}
+                    : "Mark this report reviewed?"}
                 </AlertDialogTitle>
                 <AlertDialogDescription>
                   {confirm.action === "ban"
                     ? "This will permanently revoke the user's access. The report will be marked resolved."
-                    : "The user will receive a warning notification. The report will be marked reviewed."}
+                    : "This only updates the report status. It does not send a warning to the reported user."}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

@@ -49,10 +49,14 @@ export function mapReport(r: any): Report {
   return {
     id: r.id,
     reportedUser: r.reportedUser ?? "—",
+    reportedUserId: r.reportedUserId,
     reporter: r.reporter ?? "—",
-    category: (r.category ?? "Other") as Report["category"],
+    reporterId: r.reporterId,
+    category: r.category ?? r.reason ?? "Other",
+    reason: r.reason,
+    details: r.details ?? null,
     severity: (r.severity ?? "low") as Report["severity"],
-    status: (status === "dismissed" ? "resolved" : status) as Report["status"],
+    status: status as Report["status"],
     date: rel(r.date),
   };
 }

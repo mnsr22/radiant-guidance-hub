@@ -114,10 +114,14 @@ export const mockUsers = generateUsers(64);
 export type Report = {
   id: string;
   reportedUser: string;
+  reportedUserId?: string;
   reporter: string;
-  category: "Harassment" | "Fake Profile" | "Inappropriate" | "Spam" | "Other";
+  reporterId?: string;
+  category: string;
+  reason?: string;
+  details?: string | null;
   severity: "low" | "medium" | "high";
-  status: "pending" | "reviewed" | "resolved";
+  status: "pending" | "reviewed" | "resolved" | "dismissed";
   date: string;
 };
 
